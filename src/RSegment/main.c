@@ -30,19 +30,9 @@ Options
 #define Wave CDSP2_Wave_Float
 #define Real Float
 
-Array_Define(String, RecList);
 Array_Define(int, SegList);
 
-static void ParseRecFile(File* Sorc)
-{
-    int Size = File_GetLength(Sorc) - 1;
-    while(File_GetPosition(Sorc) < Size)
-    {
-        Array_PushNull(String, RecList);
-        String_Ctor(& TopOf(RecList));
-        File_ReadWord(Sorc, & TopOf(RecList));
-    }
-}
+#include "../Commons.h"
 
 static void ParseLabelFile(File* Sorc, int SampleRate)
 {

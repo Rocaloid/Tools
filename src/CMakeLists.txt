@@ -9,3 +9,9 @@ target_link_libraries(rsegment CVEDSP2)
 target_link_libraries(rsegment RFNL)
 target_link_libraries(rsegment m)
 
+aux_source_directory(./GenRoto GROTO_SRC_LIST)
+add_executable(genroto ${GROTO_SRC_LIST})
+target_link_libraries(genroto RUCE)
+target_link_libraries(genroto RFNL)
+target_link_libraries(genroto m)
+
