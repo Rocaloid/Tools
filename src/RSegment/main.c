@@ -12,7 +12,7 @@ SYNOPSIS
     rsegment [-r] [-t] [-g noisegate] [-e endinggate]
              wavfile labelfile recfile
 
-Options
+OPTIONS
     -r
         Regenerate audacity label track bounded with words from word tabel.
     

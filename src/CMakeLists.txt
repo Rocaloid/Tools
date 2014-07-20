@@ -15,3 +15,11 @@ target_link_libraries(genroto RUCE)
 target_link_libraries(genroto RFNL)
 target_link_libraries(genroto m)
 
+aux_source_directory(./GenRUDB GRUDB_SRC_LIST)
+add_executable(genrudb ${GRUDB_SRC_LIST})
+target_link_libraries(genrudb RUCE)
+target_link_libraries(genrudb CVESVP)
+target_link_libraries(genrudb CVEDSP2)
+target_link_libraries(genrudb RFNL)
+target_link_libraries(genrudb m)
+
