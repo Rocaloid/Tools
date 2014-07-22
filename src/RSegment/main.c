@@ -259,10 +259,11 @@ int main(int ArgN, char** Arg)
         RFree(Data);
     }
     if(i <= RecList_Index)
-        fprintf(stderr, "Warning: redundant records in word table staring from "
-            "'%s'.\n", String_GetChars(& RecList[i]));
+        fprintf(stderr, "Warning: redundant records in word table starting from"
+            " '%s'.\n", String_GetChars(& RecList[i]));
     
-    File_Flush(& RegenFile);
+    if(RegenFlag)
+        File_Flush(& RegenFile);
     File_Close(& RecFile);
     File_Close(& LabelFile);
     File_Close(& RegenFile);

@@ -6,6 +6,7 @@
 #include <CVESVP.h>
 #include <RUCE.h>
 
+#include "Common.h"
 /*
 NAME
     GenRUDB - Analyze voice waveform and generate RUCE voice bank.
@@ -23,6 +24,10 @@ OPTIONS
     -a <sound intensity>
         Normalize the amplitude of utterance(in decibel).
         Default: No normalization
+    
+    -r
+        Read-only access to rotofile.
+        Default: Disabled
     
     Fundamental Frequency Estimation    
     -u <frequency>
@@ -45,7 +50,7 @@ OPTIONS
     
     -h <hopsize>
         Hop size for HNM analysis.
-        Default: 256    
+        Default: 256
     
     -z <size>
         Size of analysis window in integer power of 2.
@@ -66,12 +71,9 @@ OPTIONS
         Default: disabled
 */
 
-#define Wave CDSP2_Wave_Float
-#define Real Float
-
 static void PrintUsage()
 {
-    fprintf(stderr, "Usuage: genrudb [-n unitname] [-a soundintensity]\n"
+    fprintf(stderr, "Usuage: genrudb [-n unitname] [-a soundintensity] [-r]\n"
                     "                [-u freq] [-l freq] [-m method]\n"
                     "                [-s freq] [-h hopsize] [-z size]\n"
                     "                [-w window] [-o offset] [-v] "
@@ -80,22 +82,23 @@ static void PrintUsage()
 
 int main(int ArgN, char** Arg)
 {
-    char* CRotoFile = NULL;
-    char* CUnitName = NULL;
-    float Intensity = -50;
-    int   NormFlag = 0;
-    float UFundFreq = 700;
-    float LFundFreq = 80;
-    char* CFundMethod = "YIN";
-    float USinuFreq = 10000;
-    int   HopSize = 256;
-    int   WinSize = 2048;
-    char* CWindow = "hanning";
-    int   Offset = 500;
-    int   VerboseFlag = 0;
+    CRotoFile = NULL;
+    CUnitName = NULL;
+    ReadOnlyFlag = 0;
+    Intensity = -50;
+    NormFlag = 0;
+    UFundFreq = 700;
+    LFundFreq = 80;
+    CFundMethod = "YIN";
+    USinuFreq = 10000;
+    HopSize = 256;
+    WinSize = 2048;
+    CWindow = "hanning";
+    Offset = 500;
+    VerboseFlag = 0;
     
     int c;
-    while((c = getopt(ArgN, Arg, "n:a:u:l:m:s:h:z:w:o:v")) != -1)
+    while((c = getopt(ArgN, Arg, "n:a:ru:l:m:s:h:z:w:o:v")) != -1)
     {
         switch(c)
         {
@@ -105,6 +108,9 @@ int main(int ArgN, char** Arg)
             case 'a':
                 Intensity = atof(optarg);
                 NormFlag = 1;
+            break;
+            case 'r':
+                ReadOnlyFlag = 1;
             break;
             case 'u':
                 UFundFreq = atof(optarg);
@@ -155,7 +161,6 @@ int main(int ArgN, char** Arg)
     CRotoFile = Arg[optind];
     
     //String conversion
-    String FundMethod, UnitName, WindowName;
     String TempFundMethod, TempWindowName;
     RNew(String, & FundMethod, & UnitName, & WindowName,
                  & TempFundMethod, & TempWindowName);
@@ -163,6 +168,7 @@ int main(int ArgN, char** Arg)
     String_SetChars(& TempWindowName, CWindow);
     if(CUnitName)
         String_SetChars(& UnitName, CUnitName);
+    
     UpperCase(& FundMethod, & TempFundMethod);
     LowerCase(& WindowName, & TempWindowName);
     RDelete(& TempFundMethod, & TempWindowName);
@@ -221,6 +227,22 @@ int main(int ArgN, char** Arg)
         return 1;
     }
     
+    if(String_EqualChars(& WindowName, "hanning"))
+    {
+        EWindow = Hanning;
+    }else if(String_EqualChars(& WindowName, "hamming"))
+    {
+        EWindow = Hamming;
+    }else if(String_EqualChars(& WindowName, "blackman"))
+    {
+        EWindow = Blackman;
+    }else
+    {
+        fprintf(stderr, "[Error] Invalid window '%s'.\n", String_GetChars(& WindowName));
+        return 1;
+    }
+    
+    //Roto loading
     String RotoPath;
     String_Ctor(& RotoPath);
     String_SetChars(& RotoPath, CRotoFile);
@@ -231,9 +253,80 @@ int main(int ArgN, char** Arg)
         fprintf(stderr, "[Error] Cannot open '%s'.\n", CRotoFile);
         return 1;
     }
-    printf("%ld\n", InRoto.Ptr);
     
-    RDelete(& InRoto, & RotoPath);
+    Wave InWave;
+    RUCE_Roto_Entry Entry;
+    RUCE_Roto_Entry_Ctor(& Entry);
+    RCall(Wave, Ctor)(& InWave);
+    
+    //RUDB Generation
+    
+    #define _PrintConfig() \
+            if(ReadOnlyFlag) \
+            { \
+                printf("Roto configuration for '%s':\n", CUnitName); \
+                printf("  VOT = %d\n", Entry.VOT); \
+                printf("  InvarLeft = %d\n", Entry.InvarLeft); \
+                printf("  InvarRight = %d\n", Entry.InvarRight); \
+            }
+    
+    String DirName;
+    String_Ctor(& DirName);
+    if(CUnitName)
+    {
+        //Generate single unit.
+        int Status = RUCE_Roto_GetEntry(& InRoto, & Entry, & UnitName);
+        if(Status < 1) printf("Entry '%s' does not exist.\n", CUnitName);
+        String_Copy(& Entry.Name, & UnitName);
+        DirFromFilePath(& DirName, & RotoPath);
+        String_JoinChars(& DirName, "/");
+        String_Join(& DirName, & UnitName);
+        String_JoinChars(& DirName, ".wav");
+        Status = RCall(Wave, FromFile)(& InWave, & DirName);
+        if(Status < 1)
+        {
+            fprintf(stderr, "[Error] Cannot load '%s'.\n",
+                String_GetChars(& DirName));
+        }else
+        {
+            GenUnit(& Entry, NULL);
+            if(Status < 1) printf("Creating entry '%s'...\n", CUnitName);
+                RUCE_Roto_SetEntry(& InRoto, & Entry);
+            _PrintConfig();
+        }
+    }else
+    {
+        //Batch process all units.
+        int Num = RUCE_Roto_GetEntryNum(& InRoto);
+        int i;
+        for(i = 0; i < Num; i ++)
+        {
+            RUCE_Roto_GetEntryByIndex(& InRoto, & Entry, i);
+            
+            DirFromFilePath(& DirName, & RotoPath);
+            String_JoinChars(& DirName, "/");
+            String_Join(& DirName, & Entry.Name);
+            String_JoinChars(& DirName, ".wav");
+            int Status = RCall(Wave, FromFile)(& InWave, & DirName);
+            if(Status < 1)
+            {
+                fprintf(stderr, "[Error] Cannot load '%s'.\n",
+                    String_GetChars(& DirName));
+                continue;
+            }
+            
+            GenUnit(& Entry, NULL);
+            RUCE_Roto_SetEntry(& InRoto, & Entry);
+            _PrintConfig();
+        }
+    }
+    
+    if(! ReadOnlyFlag)
+    {
+        RUCE_Roto_Write(& InRoto, & RotoPath);
+    }
+    
+    RDelete(& InRoto, & RotoPath, & Entry, & InWave, & DirName);
     RDelete(& FundMethod, & UnitName, & WindowName);
     return 0;
 }
