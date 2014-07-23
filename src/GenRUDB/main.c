@@ -21,10 +21,6 @@ OPTIONS
         Only generate the datafile for the specified vocal unit.
         Default: Disabled(batch process all units in roto)
     
-    -a <sound intensity>
-        Normalize the amplitude of utterance(in decibel).
-        Default: No normalization
-    
     -r
         Read-only access to rotofile.
         Default: Disabled
@@ -41,9 +37,9 @@ OPTIONS
     -m <method>
         Fundamental frequency estimation method.
         Choices: YIN, SPECSTEP. (case-insensitive)
-        Default: YIN    
+        Default: YIN
     
-    HNM Analysis
+    HNM & PSOLA Analysis
     -s <frequency>
         The upper bound of sinusoidal component.
         Default: 10000
@@ -61,8 +57,12 @@ OPTIONS
         Choices: hanning, hamming, blackman. (case-insensitive)
         Default: hanning
     
+    -t <position>
+        Specify the VOT(Voice Onset Time). Unit: sample.
+        Default: Automatic VOT detection
+    
     -o <offset>
-        The offset(in relation to VOT) of left bound for HNM analysis.
+        The offset(in relation with VOT) of left bound for HNM analysis.
         Default: 500
     
     Other
@@ -73,11 +73,11 @@ OPTIONS
 
 static void PrintUsage()
 {
-    fprintf(stderr, "Usuage: genrudb [-n unitname] [-a soundintensity] [-r]\n"
+    fprintf(stderr, "Usuage: genrudb [-n unitname] [-r]\n"
                     "                [-u freq] [-l freq] [-m method]\n"
                     "                [-s freq] [-h hopsize] [-z size]\n"
-                    "                [-w window] [-o offset] [-v] "
-                                    "rotofile\n");
+                    "                [-w window] [-t position] [-o offset]"
+                    "                [-v] rotofile\n");
 }
 
 int main(int ArgN, char** Arg)
@@ -85,8 +85,6 @@ int main(int ArgN, char** Arg)
     CRotoFile = NULL;
     CUnitName = NULL;
     ReadOnlyFlag = 0;
-    Intensity = -50;
-    NormFlag = 0;
     UFundFreq = 700;
     LFundFreq = 80;
     CFundMethod = "YIN";
@@ -94,20 +92,18 @@ int main(int ArgN, char** Arg)
     HopSize = 256;
     WinSize = 2048;
     CWindow = "hanning";
+    VOT = 0;
+    VOTFlag = 0;
     Offset = 500;
     VerboseFlag = 0;
     
     int c;
-    while((c = getopt(ArgN, Arg, "n:a:ru:l:m:s:h:z:w:o:v")) != -1)
+    while((c = getopt(ArgN, Arg, "n:ru:l:m:s:h:z:w:t:o:v")) != -1)
     {
         switch(c)
         {
             case 'n':
                 CUnitName = optarg;
-            break;
-            case 'a':
-                Intensity = atof(optarg);
-                NormFlag = 1;
             break;
             case 'r':
                 ReadOnlyFlag = 1;
@@ -132,6 +128,10 @@ int main(int ArgN, char** Arg)
             break;
             case 'w':
                 CWindow = optarg;
+            break;
+            case 't':
+                VOT = atoi(optarg);
+                VOTFlag = 1;
             break;
             case 'o':
                 Offset = atoi(optarg);
@@ -227,6 +227,12 @@ int main(int ArgN, char** Arg)
         return 1;
     }
     
+    if(VOTFlag && VOT < 0)
+    {
+        fprintf(stderr, "[Error] Invalid VOT.\n");
+        return 1;
+    }
+    
     if(String_EqualChars(& WindowName, "hanning"))
     {
         EWindow = Hanning;
@@ -238,7 +244,22 @@ int main(int ArgN, char** Arg)
         EWindow = Blackman;
     }else
     {
-        fprintf(stderr, "[Error] Invalid window '%s'.\n", String_GetChars(& WindowName));
+        fprintf(stderr, "[Error] Invalid window '%s'.\n",
+            String_GetChars(& WindowName));
+        return 1;
+    }
+    
+    if(String_EqualChars(& FundMethod, "YIN"))
+    {
+        EF0 = CSVP_F0_YIN;
+    }else if(String_EqualChars(& FundMethod, "SPECSTEP"))
+    {
+        EF0 = CSVP_F0_SpecStep;
+    }else
+    {
+        fprintf(stderr, "[Error] Invalid fundamental frequency estimation "
+                        "method '%s'.\n",
+            String_GetChars(& FundMethod));
         return 1;
     }
     
@@ -260,15 +281,25 @@ int main(int ArgN, char** Arg)
     RCall(Wave, Ctor)(& InWave);
     
     //RUDB Generation
-    
+    CDSP2_SetArch(CDSP2_Arch_Gnrc);
     #define _PrintConfig() \
             if(ReadOnlyFlag) \
             { \
-                printf("Roto configuration for '%s':\n", CUnitName); \
+                printf("Roto configuration for '%s':\n", \
+                    String_GetChars(& Entry.Name)); \
                 printf("  VOT = %d\n", Entry.VOT); \
                 printf("  InvarLeft = %d\n", Entry.InvarLeft); \
                 printf("  InvarRight = %d\n", Entry.InvarRight); \
             }
+    
+    Real* Window = RCall(RAlloc, Real)(WinSize);
+    if(EWindow == Hanning)
+        RCall(CDSP2_GenHanning, Real)(Window, WinSize);
+    else if(EWindow == Hamming)
+        RCall(CDSP2_GenHamming, Real)(Window, WinSize);
+    else
+        RCall(CDSP2_GenBlackman, Real)(Window, WinSize);
+    RCall(Wave, SetWindow)(& InWave, Window, WinSize);
     
     String DirName;
     String_Ctor(& DirName);
@@ -289,7 +320,7 @@ int main(int ArgN, char** Arg)
                 String_GetChars(& DirName));
         }else
         {
-            GenUnit(& Entry, NULL);
+            GenUnit(& Entry, & InWave);
             if(Status < 1) printf("Creating entry '%s'...\n", CUnitName);
                 RUCE_Roto_SetEntry(& InRoto, & Entry);
             _PrintConfig();
@@ -315,7 +346,7 @@ int main(int ArgN, char** Arg)
                 continue;
             }
             
-            GenUnit(& Entry, NULL);
+            GenUnit(& Entry, & InWave);
             RUCE_Roto_SetEntry(& InRoto, & Entry);
             _PrintConfig();
         }
@@ -326,6 +357,7 @@ int main(int ArgN, char** Arg)
         RUCE_Roto_Write(& InRoto, & RotoPath);
     }
     
+    RFree(Window);
     RDelete(& InRoto, & RotoPath, & Entry, & InWave, & DirName);
     RDelete(& FundMethod, & UnitName, & WindowName);
     return 0;
