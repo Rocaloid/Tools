@@ -6,7 +6,7 @@
 #include <RUCE.h>
 #include "Common.h"
 
-int GenUnit(RUCE_Roto_Entry* Ret, Wave* Sorc);
+int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc);
 
 #endif
 

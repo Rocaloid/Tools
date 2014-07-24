@@ -277,7 +277,9 @@ int main(int ArgN, char** Arg)
     
     Wave InWave;
     RUCE_Roto_Entry Entry;
+    RUCE_DB_Entry DBEntry;
     RUCE_Roto_Entry_Ctor(& Entry);
+    RUCE_DB_Entry_Ctor(& DBEntry);
     RCall(Wave, Ctor)(& InWave);
     
     //RUDB Generation
@@ -320,7 +322,7 @@ int main(int ArgN, char** Arg)
                 String_GetChars(& DirName));
         }else
         {
-            GenUnit(& Entry, & InWave);
+            GenUnit(& Entry, & DBEntry, & InWave);
             if(Status < 1) printf("Creating entry '%s'...\n", CUnitName);
                 RUCE_Roto_SetEntry(& InRoto, & Entry);
             _PrintConfig();
@@ -346,7 +348,7 @@ int main(int ArgN, char** Arg)
                 continue;
             }
             
-            GenUnit(& Entry, & InWave);
+            GenUnit(& Entry, & DBEntry, & InWave);
             RUCE_Roto_SetEntry(& InRoto, & Entry);
             _PrintConfig();
         }
@@ -358,7 +360,7 @@ int main(int ArgN, char** Arg)
     }
     
     RFree(Window);
-    RDelete(& InRoto, & RotoPath, & Entry, & InWave, & DirName);
+    RDelete(& InRoto, & RotoPath, & Entry, & InWave, & DirName, & DBEntry);
     RDelete(& FundMethod, & UnitName, & WindowName);
     return 0;
 }
