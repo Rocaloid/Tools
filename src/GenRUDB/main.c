@@ -325,6 +325,14 @@ int main(int ArgN, char** Arg)
             GenUnit(& Entry, & DBEntry, & InWave);
             if(Status < 1) printf("Creating entry '%s'...\n", CUnitName);
                 RUCE_Roto_SetEntry(& InRoto, & Entry);
+            
+            if(VerboseFlag)
+                printf("Saving rudb...\n");
+            DirFromFilePath(& DirName, & RotoPath);
+            String_JoinChars(& DirName, "/");
+            String_Join(& DirName, & Entry.Name);
+            String_JoinChars(& DirName, ".rudb");
+            RUCE_RUDB_Save(& DBEntry, & DirName);
             _PrintConfig();
         }
     }else
@@ -340,6 +348,9 @@ int main(int ArgN, char** Arg)
             String_JoinChars(& DirName, "/");
             String_Join(& DirName, & Entry.Name);
             String_JoinChars(& DirName, ".wav");
+            RCall(Wave, Dtor)(& InWave);
+            RCall(Wave, Ctor)(& InWave);
+            RCall(Wave, SetWindow)(& InWave, Window, WinSize);
             int Status = RCall(Wave, FromFile)(& InWave, & DirName);
             if(Status < 1)
             {
@@ -350,6 +361,15 @@ int main(int ArgN, char** Arg)
             
             GenUnit(& Entry, & DBEntry, & InWave);
             RUCE_Roto_SetEntry(& InRoto, & Entry);
+            
+            if(VerboseFlag)
+                printf("Saving rudb...\n");
+            DirFromFilePath(& DirName, & RotoPath);
+            String_JoinChars(& DirName, "/");
+            String_Join(& DirName, & Entry.Name);
+            String_JoinChars(& DirName, ".rudb");
+            RUCE_RUDB_Save(& DBEntry, & DirName);
+            
             _PrintConfig();
         }
     }

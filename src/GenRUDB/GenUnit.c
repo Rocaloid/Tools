@@ -58,6 +58,7 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
         return 0;
     }
     
+    if(VerboseFlag)
     printf("VOT = %d\n", VOT);
     Ret -> VOT = VOT;
     
@@ -93,10 +94,13 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     
     Real Sum = RCall(CDSP2_VSum, Real)(F0Iter.F0List.Y, 0,
         F0Iter.F0List.Y_Index + 1);
+    
+    if(VerboseFlag)
     printf("Average fundamental frequency: %fHz\n",
         (Real)Sum / ((Real)F0Iter.F0List.Y_Index + 1.0));
     
     //PSOLA Analysis
+    if(VerboseFlag)
     printf("PSOLA analysis...\n");
     PSOLAIterlyzer PAna;
     RCall(PSOLAIterlyzer, Ctor)(& PAna);
@@ -125,6 +129,7 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     
     //HNM Analysis
     HNMIterlyzer HAna;
+    if(VerboseFlag)
     printf("HNM analysis...\n");
     RCall(HNMIterlyzer, CtorSize)(& HAna, WinSize);
     RCall(HNMIterlyzer, SetWave)(& HAna, Sorc);
@@ -147,6 +152,8 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     }
     
     //Filling in
+    if(VerboseFlag)
+    printf("Converting data structure...\n");
     int i, j;
     
     Dest -> HopSize = HopSize;
@@ -183,6 +190,8 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     }
     RDelete(& PAna);
     
+    if(VerboseFlag)
+    printf("Invariant region analysis...\n");
     //Generate Invar end points
     List_HNMContour ContourList;
     RCall(List_HNMContour, CtorSize)(& ContourList,
@@ -232,8 +241,8 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
         }
     
     Real InvarMin = Min + 0.004;
-    Dest -> InvarLeft  = 0;
-    Ret  -> InvarLeft  = 0;
+    Dest -> InvarLeft  = HAna.PulseList.Frames[0];
+    Ret  -> InvarLeft  = HAna.PulseList.Frames[0];
     Dest -> InvarRight = TopOf(HAna.PulseList.Frames);
     Ret  -> InvarRight = TopOf(HAna.PulseList.Frames);
     for(j = MinIndex; j > 0; j --)
