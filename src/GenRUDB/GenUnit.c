@@ -2,13 +2,49 @@
 #include <stdlib.h>
 #include <CVESVP.h>
 
+Real ContourDiff(HNMContour* Sorc1, HNMContour* Sorc2)
+{
+    if(Sorc1 -> Size != Sorc2 -> Size) return -1;
+    int HalfSize = Sorc1 -> Size / 2 + 1;
+    
+    int U1 = 0;
+    int U2 = 0;
+    int i;
+    for(i = 0; i < HalfSize; i ++)
+        if(Sorc1 -> Hmnc[i] < -100)
+        {
+            U1 = i;
+            break;
+        }
+    for(i = 0; i < HalfSize; i ++)
+        if(Sorc2 -> Hmnc[i] < -100)
+        {
+            U2 = i;
+            break;
+        }
+    
+    int U = (U1 < U2 ? U1 : U2) / 2;
+    Real* Diff = RCall(RAlloc, Real)(U);
+    RCall(CDSP2_VSub, Real)(Diff, Sorc1 -> Hmnc, Sorc2 -> Hmnc, U);
+    RCall(CDSP2_VMul, Real)(Diff, Diff, Diff, U);
+    Real Ret = RCall(CDSP2_VSum, Real)(Diff, 0, U) / (Real)U;
+    
+    RFree(Diff);
+    return Ret;
+}
+
+Real sigmoid(Real x)
+{
+    return 1.0 / (1.0 + exp(- x));
+}
+
 int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
 {
     int FRet = 1;
     int WSize = Sorc -> Size;
     
     printf("Generating unit \'%s\'...\n", String_GetChars(& Ret -> Name));
-    RCall(Wave, Resize)(Sorc, Sorc -> Size + WinSize);
+    RCall(Wave, Resize)(Sorc, Sorc -> Size + WinSize * 2);
     
     //VOT detection
     if(! VOTFlag)
@@ -50,7 +86,7 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
         RDelete(& F0Iter);
         return 0;
     }
-    RCall(F0Iterlyzer, PrevTo)(& F0Iter, 0);
+    RCall(F0Iterlyzer, PrevTo)(& F0Iter, VOT);
     RCall(F0Iterlyzer, IterNextTo)(& F0Iter, Sorc -> Size);
     RCall(CSVP_F0PostProcess, Real)(& F0Iter.F0List, 4000, 0.15,
         LFundFreq, UFundFreq);
@@ -140,13 +176,85 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
         
         for(j = 0; j < SorcPhase -> Size; j ++)
         {
-            DestEntry -> Freq[i] = SorcEntry -> Hmnc.Freq[i];
-            DestEntry -> Ampl[i] = SorcEntry -> Hmnc.Ampl[i];
-            DestEntry -> Phse[i] = SorcPhase -> Data[i];
+            DestEntry -> Freq[j] = SorcEntry -> Hmnc.Freq[j];
+            DestEntry -> Ampl[j] = SorcEntry -> Hmnc.Ampl[j];
+            DestEntry -> Phse[j] = SorcPhase -> Data[j];
+        }
+    }
+    RDelete(& PAna);
+    
+    //Generate Invar end points
+    List_HNMContour ContourList;
+    RCall(List_HNMContour, CtorSize)(& ContourList,
+        HAna.HNMList.Frames_Index + 1, WinSize);
+    ContourList.Frames_Index = HAna.HNMList.Frames_Index;
+    
+    for(i = 0; i <= ContourList.Frames_Index; i ++)
+        RCall(HNMFrame, ToContour)(& HAna.HNMList.Frames[i],
+            & ContourList.Frames[i]);
+    
+    Array_Define(Real, LocalDiff);
+    Array_Ctor(Real, LocalDiff);
+    Array_Resize(Real, LocalDiff, ContourList.Frames_Index + 1);
+    Array_Define(Real, AvgDiff);
+    Array_Ctor(Real, AvgDiff);
+    
+    LocalDiff_Index = ContourList.Frames_Index;
+    for(i = 0; i <= LocalDiff_Index; i ++) LocalDiff[i] = 0;
+    
+    for(i = ContourList.Frames_Index / 20; i < ContourList.Frames_Index / 10;
+        i ++)
+    {
+        HNMContour* Cmp1 = & ContourList.Frames[i * 10];
+        for(j = 0; j <= LocalDiff_Index; j ++)
+        {
+            HNMContour* Cmp2 = & ContourList.Frames[j];
+            Real Diff = ContourDiff(Cmp1, Cmp2);
+            //Normalize
+            LocalDiff[j] += sigmoid(Diff) / (Real)LocalDiff_Index;
         }
     }
     
-    RDelete(& F0Iter, & PAna, & HAna);
+    int AvgLen = WinSize / HopSize;
+    if(AvgLen > LocalDiff_Index / 8) AvgLen = LocalDiff_Index / 8;
+    Array_From(Real, AvgDiff, LocalDiff);
+    for(j = AvgLen; j < LocalDiff_Index - AvgLen; j ++)
+        AvgDiff[j] = RCall(CDSP2_VSum, Real)(LocalDiff, j - AvgLen, j + AvgLen)
+                   / AvgLen / 2.0;
+    
+    Real Min = AvgDiff[0];
+    Real MinIndex = 0;
+    for(j = 0; j <= AvgDiff_Index; j ++)
+        if(AvgDiff[j] < Min)
+        {
+            Min = AvgDiff[j];
+            MinIndex = j;
+        }
+    
+    Real InvarMin = Min + 0.004;
+    Dest -> InvarLeft  = 0;
+    Ret  -> InvarLeft  = 0;
+    Dest -> InvarRight = TopOf(HAna.PulseList.Frames);
+    Ret  -> InvarRight = TopOf(HAna.PulseList.Frames);
+    for(j = MinIndex; j > 0; j --)
+        if(AvgDiff[j] > InvarMin)
+        {
+            Dest -> InvarLeft = HAna.PulseList.Frames[j];
+            Ret  -> InvarLeft = Dest -> InvarLeft;
+            break;
+        }
+    
+    for(j = MinIndex; j <= LocalDiff_Index; j ++)
+        if(AvgDiff[j] > InvarMin)
+        {
+            Dest -> InvarRight = HAna.PulseList.Frames[j];
+            Ret  -> InvarRight = Dest -> InvarRight;
+            break;
+        }
+    
+    Array_Dtor(Real, LocalDiff);
+    Array_Dtor(Real, AvgDiff);
+    RDelete(& F0Iter, & HAna, & ContourList);
     return FRet;
 }
 

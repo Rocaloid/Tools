@@ -7,6 +7,8 @@
 #define HNMIterlyzer CSVP_HNMIterlyzer_Float
 #define HNMFrame CSVP_HNMFrame_Float
 #define DataFrame CDSP2_DataFrame_Float
+#define List_HNMContour CSVP_List_HNMContour_Float
+#define HNMContour CSVP_HNMContour_Float
 #define Real Float
 
 char* CRotoFile;
