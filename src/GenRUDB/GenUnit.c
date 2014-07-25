@@ -134,11 +134,11 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     RCall(HNMIterlyzer, CtorSize)(& HAna, WinSize);
     RCall(HNMIterlyzer, SetWave)(& HAna, Sorc);
     RCall(HNMIterlyzer, SetHopSize)(& HAna, HopSize);
-    RCall(HNMIterlyzer, SetPosition)(& HAna, VOT + 2000);
+    RCall(HNMIterlyzer, SetPosition)(& HAna, VOT + Offset + 2000);
     RCall(HNMIterlyzer, SetUpperFreq)(& HAna, USinuFreq);
     RCall(HNMIterlyzer, SetPitch)(& HAna, & F0Iter.F0List);
     HAna.GenPhase = 1;
-    if(! RCall(HNMIterlyzer, PrevTo)(& HAna, VOT))
+    if(! RCall(HNMIterlyzer, PrevTo)(& HAna, VOT + Offset))
     {
         fprintf(stderr, "[Error] HNM backward analysis failed. Skipped.\n");
         RDelete(& F0Iter, & PAna, & HAna);
@@ -240,7 +240,7 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
             MinIndex = j;
         }
     
-    Real InvarMin = Min + 0.004;
+    Real InvarMin = Min + InvarThreshold;
     Dest -> InvarLeft  = HAna.PulseList.Frames[0];
     Ret  -> InvarLeft  = HAna.PulseList.Frames[0];
     Dest -> InvarRight = TopOf(HAna.PulseList.Frames);

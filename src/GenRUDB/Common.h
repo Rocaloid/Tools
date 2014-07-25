@@ -11,6 +11,8 @@
 #define HNMContour CSVP_HNMContour_Float
 #define Real Float
 
+#define Version "1.0.0"
+
 char* CRotoFile;
 char* CUnitName;
 int   ReadOnlyFlag;
@@ -24,6 +26,7 @@ char* CWindow;
 int   VOT;
 int   VOTFlag;
 int   Offset;
+float InvarThreshold;
 int   VerboseFlag;
 
 String FundMethod, UnitName, WindowName;

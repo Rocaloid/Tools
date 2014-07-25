@@ -66,8 +66,16 @@ OPTIONS
         Default: 500
     
     Other
-    -v
+    -i <threshold>
+        Threshold for invariant region analysis.
+        Default: 0.004
+    
+    -V
         Verbose.
+        Default: disabled
+    
+    -v
+        Print version.
         Default: disabled
 */
 
@@ -95,10 +103,11 @@ int main(int ArgN, char** Arg)
     VOT = 0;
     VOTFlag = 0;
     Offset = 500;
+    InvarThreshold = 0.004;
     VerboseFlag = 0;
     
     int c;
-    while((c = getopt(ArgN, Arg, "n:ru:l:m:s:h:z:w:t:o:v")) != -1)
+    while((c = getopt(ArgN, Arg, "n:ru:l:m:s:h:z:w:t:o:i:Vv")) != -1)
     {
         switch(c)
         {
@@ -137,9 +146,15 @@ int main(int ArgN, char** Arg)
                 Offset = atoi(optarg);
             break;
             case 'v':
+                printf("Rocaloid GenRUDB version " Version "\n");
+                return 1;
+            break;
+            case 'V':
                 VerboseFlag = 1;
             break;
-            
+            case 'i':
+                InvarThreshold = atof(optarg);
+            break;
             case '?':
                 PrintUsage();
                 return 1;
