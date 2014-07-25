@@ -7,85 +7,14 @@
 #include <RUCE.h>
 
 #include "Common.h"
-/*
-NAME
-    GenRUDB - Analyze voice waveform and generate RUCE voice bank.
-    
-SYNOPSIS
-    genrudb [Other Options] [-n unitname] rotofile
-    
-OPTIONS
-    
-    Behaviour
-    -n <unitname>
-        Only generate the datafile for the specified vocal unit.
-        Default: Disabled(batch process all units in roto)
-    
-    -r
-        Read-only access to rotofile.
-        Default: Disabled
-    
-    Fundamental Frequency Estimation    
-    -u <frequency>
-        Upper bound for fundamental frequency estimation.
-        Default: 700
-    
-    -l <frequency>
-        Lower bound for fundamental frequency estimation.
-        Default: 80
-    
-    -m <method>
-        Fundamental frequency estimation method.
-        Choices: YIN, SPECSTEP. (case-insensitive)
-        Default: YIN
-    
-    HNM & PSOLA Analysis
-    -s <frequency>
-        The upper bound of sinusoidal component.
-        Default: 10000
-    
-    -h <hopsize>
-        Hop size for HNM analysis.
-        Default: 256
-    
-    -z <size>
-        Size of analysis window in integer power of 2.
-        Default: 2048
-    
-    -w <window>
-        Analysis window.
-        Choices: hanning, hamming, blackman. (case-insensitive)
-        Default: hanning
-    
-    -t <position>
-        Specify the VOT(Voice Onset Time). Unit: sample.
-        Default: Automatic VOT detection
-    
-    -o <offset>
-        The offset(in relation with VOT) of left bound for HNM analysis.
-        Default: 500
-    
-    Other
-    -i <threshold>
-        Threshold for invariant region analysis.
-        Default: 0.004
-    
-    -V
-        Verbose.
-        Default: disabled
-    
-    -v
-        Print version.
-        Default: disabled
-*/
 
 static void PrintUsage()
 {
     fprintf(stderr, "Usuage: genrudb [-n unitname] [-r]\n"
                     "                [-u freq] [-l freq] [-m method]\n"
                     "                [-s freq] [-h hopsize] [-z size]\n"
-                    "                [-w window] [-t position] [-o offset]"
-                    "                [-v] rotofile\n");
+                    "                [-w window] [-t position] [-o offset]\n"
+                    "                [-i threshold] [-v] [-V] rotofile\n");
 }
 
 int main(int ArgN, char** Arg)

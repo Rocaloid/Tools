@@ -23,3 +23,30 @@ target_link_libraries(genrudb CVEDSP2)
 target_link_libraries(genrudb RFNL)
 target_link_libraries(genrudb m)
 
+ADD_CUSTOM_TARGET(ManPages ALL)
+
+ADD_CUSTOM_COMMAND(
+    TARGET ManPages
+    SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/GenRUDB/man.pod 
+    COMMAND pod2man ARGS -s 1  -n GenRUDB --center='Rocaloid Toolchain' -s 1
+        -r GenRUDB-1.0.0.1 ${CMAKE_CURRENT_SOURCE_DIR}/GenRUDB/man.pod
+        ${CMAKE_CURRENT_BINARY_DIR}/genrudb.1 
+    OUTPUTS ${CMAKE_CURRENT_BINARY_DIR}/genrudb.1
+)
+
+ADD_CUSTOM_COMMAND(
+    TARGET ManPages
+    SOURCE ManPages
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/genrudb.1
+)
+
+INSTALL(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/genrudb.1
+    DESTINATION share/man/man1
+)
+
+INSTALL(
+    TARGETS genrudb
+    DESTINATION bin/
+)
+

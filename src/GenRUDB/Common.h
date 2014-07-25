@@ -11,7 +11,7 @@
 #define HNMContour CSVP_HNMContour_Float
 #define Real Float
 
-#define Version "1.0.0"
+#define Version "1.0.0.1"
 
 char* CRotoFile;
 char* CUnitName;

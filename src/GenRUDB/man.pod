@@ -1,0 +1,118 @@
+=head1 NAME
+
+GenRUDB - Analyze voice waveform and generate RUCE voice bank.
+    
+=head1 SYNOPSIS
+
+genrudb [Other Options] [-n unitname] rotofile
+    
+=head1 OPTIONS
+
+=head2 Behaviour
+
+B<-n> I<unitname>
+
+    Only generate the datafile for the specified vocal unit.
+
+    Default: Disabled(batch process all units in roto)
+    
+B<-r>
+
+    Read-only access to rotofile.
+
+    Default: Disabled
+
+=head2 Fundamental Frequency Estimation    
+
+B<-u> I<frequency>
+
+    Upper bound of fundamental frequency.
+
+    Default: 700
+
+B<-l> I<frequency>
+
+    Lower bound of fundamental frequency.
+
+    Default: 80
+
+B<-m> I<method>
+
+    Fundamental frequency estimation method.
+
+    Choices: YIN, SPECSTEP. (case-insensitive)
+
+    Default: YIN
+
+=head2 HNM & PSOLA Analysis
+
+B<-s> I<frequency>
+
+    The upper bound of sinusoidal component.
+
+    Default: 10000
+
+B<-h> I<hopsize>
+
+    Hop size for HNM analysis.
+
+    Default: 256
+
+B<-z> I<size>
+
+    Size of analysis window in integer power of 2.
+
+    Default: 2048
+
+B<-w> I<window>
+
+    Analysis window.
+
+    Choices: hanning, hamming, blackman. (case-insensitive)
+
+    Default: hanning
+
+B<-t> I<position>
+
+    Specify the VOT(Voice Onset Time). Unit: sample.
+
+    Default: Automatic VOT detection
+
+B<-o> I<offset>
+
+    The offset(in relation with VOT) of left bound for HNM analysis.
+
+    Default: 500
+
+=head2 Other
+
+B<-i> I<threshold>
+
+    Threshold for invariant region analysis.
+
+    Default: 0.004
+
+B<-V>
+
+    Verbose.
+
+    Default: disabled
+
+B<-v>
+
+    Print version.
+
+    Default: disabled
+
+=head1 VERSION
+
+GenRUDB 1.0.0.1
+
+=head1 LICENSE
+
+Rocaloid Toolchain is released under GPLv3.
+
+=head1 AUTHOR
+
+Hua Kanru(sleepwalking(at)rocaloid.org)
+
