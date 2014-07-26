@@ -33,20 +33,33 @@ target_link_libraries(wavnorm CVEDSP2)
 target_link_libraries(wavnorm RFNL)
 target_link_libraries(wavnorm m)
 
+aux_source_directory(./Roto2Oto R2OTO_SRC_LIST)
+aux_source_directory(. R2OTO_SRC_LIST)
+add_executable(roto2oto ${R2OTO_SRC_LIST})
+target_link_libraries(roto2oto RUCE)
+target_link_libraries(roto2oto CVEDSP2)
+target_link_libraries(roto2oto RFNL)
+target_link_libraries(roto2oto m)
+
 ADD_CUSTOM_TARGET(ManPages ALL)
 
 ADD_CUSTOM_COMMAND(
     TARGET ManPages
     SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/GenRUDB/man.pod
            ${CMAKE_CURRENT_SOURCE_DIR}/WavNorm/man.pod
+           ${CMAKE_CURRENT_SOURCE_DIR}/Roto2Oto/man.pod
     COMMAND pod2man ARGS -n GenRUDB --center='Rocaloid Toolchain' -s 1
         -r GenRUDB-1.0.0.2 ${CMAKE_CURRENT_SOURCE_DIR}/GenRUDB/man.pod
-        ${CMAKE_CURRENT_BINARY_DIR}/genrudb.1 
+        ${CMAKE_CURRENT_BINARY_DIR}/genrudb.1
     COMMAND pod2man ARGS -n WavNorm --center='Rocaloid Toolchain' -s 1
         -r WavNorm-1.0.0.0 ${CMAKE_CURRENT_SOURCE_DIR}/WavNorm/man.pod
-        ${CMAKE_CURRENT_BINARY_DIR}/wavnorm.1 
+        ${CMAKE_CURRENT_BINARY_DIR}/wavnorm.1
+    COMMAND pod2man ARGS -n WavNorm --center='Rocaloid Toolchain' -s 1
+        -r Roto2Oto-1.0.0.0 ${CMAKE_CURRENT_SOURCE_DIR}/Roto2Oto/man.pod
+        ${CMAKE_CURRENT_BINARY_DIR}/roto2oto.1
     OUTPUTS ${CMAKE_CURRENT_BINARY_DIR}/genrudb.1
             ${CMAKE_CURRENT_BINARY_DIR}/wavnorm.1
+            ${CMAKE_CURRENT_BINARY_DIR}/roto2oto.1
 )
 
 ADD_CUSTOM_COMMAND(
@@ -54,16 +67,18 @@ ADD_CUSTOM_COMMAND(
     SOURCE ManPages
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/genrudb.1
             ${CMAKE_CURRENT_BINARY_DIR}/wavnorm.1
+            ${CMAKE_CURRENT_BINARY_DIR}/roto2oto.1
 )
 
 INSTALL(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/genrudb.1
           ${CMAKE_CURRENT_BINARY_DIR}/wavnorm.1
+          ${CMAKE_CURRENT_BINARY_DIR}/roto2oto.1
     DESTINATION share/man/man1
 )
 
 INSTALL(
-    TARGETS genrudb rsegment genroto wavnorm
+    TARGETS genrudb rsegment genroto wavnorm roto2oto
     DESTINATION bin/
 )
 
