@@ -24,7 +24,7 @@ B<-v>
 
 =head1 VERSION
 
-Roto2Oto 1.0.0.0
+Roto2Oto 1.0.0.1
 
 =head1 LICENSE
 

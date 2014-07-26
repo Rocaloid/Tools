@@ -106,7 +106,7 @@ B<-v>
 
 =head1 VERSION
 
-GenRUDB 1.0.0.1
+GenRUDB 1.0.0.3
 
 =head1 LICENSE
 

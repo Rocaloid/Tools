@@ -100,7 +100,7 @@ int main(int ArgN, char** Arg)
                 EndingThreshold = atof(optarg);
             break;
             case '?':
-                printf("Usuage: rsegment [-r] [-t] [-g noisegate] "
+                printf("Usage: rsegment [-r] [-t] [-g noisegate] "
                            "[-e endinggate] [-h] wavfile labelfile recfile\n");
                 return 1;
             default:

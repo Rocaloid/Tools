@@ -49,13 +49,13 @@ ADD_CUSTOM_COMMAND(
            ${CMAKE_CURRENT_SOURCE_DIR}/WavNorm/man.pod
            ${CMAKE_CURRENT_SOURCE_DIR}/Roto2Oto/man.pod
     COMMAND pod2man ARGS -n GenRUDB --center='Rocaloid Toolchain' -s 1
-        -r GenRUDB-1.0.0.2 ${CMAKE_CURRENT_SOURCE_DIR}/GenRUDB/man.pod
+        -r GenRUDB ${CMAKE_CURRENT_SOURCE_DIR}/GenRUDB/man.pod
         ${CMAKE_CURRENT_BINARY_DIR}/genrudb.1
     COMMAND pod2man ARGS -n WavNorm --center='Rocaloid Toolchain' -s 1
-        -r WavNorm-1.0.0.0 ${CMAKE_CURRENT_SOURCE_DIR}/WavNorm/man.pod
+        -r WavNorm ${CMAKE_CURRENT_SOURCE_DIR}/WavNorm/man.pod
         ${CMAKE_CURRENT_BINARY_DIR}/wavnorm.1
     COMMAND pod2man ARGS -n WavNorm --center='Rocaloid Toolchain' -s 1
-        -r Roto2Oto-1.0.0.0 ${CMAKE_CURRENT_SOURCE_DIR}/Roto2Oto/man.pod
+        -r Roto2Oto ${CMAKE_CURRENT_SOURCE_DIR}/Roto2Oto/man.pod
         ${CMAKE_CURRENT_BINARY_DIR}/roto2oto.1
     OUTPUTS ${CMAKE_CURRENT_BINARY_DIR}/genrudb.1
             ${CMAKE_CURRENT_BINARY_DIR}/wavnorm.1

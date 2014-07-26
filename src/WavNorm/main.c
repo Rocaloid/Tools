@@ -6,7 +6,7 @@
 #include <RUCE.h>
 #include "../Commons.h"
 
-#define Version "1.0.0.0"
+#define Version "1.0.0.1"
 
 int   VerboseFlag = 0;
 char* CUnitName = NULL;
@@ -17,9 +17,9 @@ char* CRotoFile = NULL;
 
 static void PrintUsage()
 {
-    fprintf(stderr, "Usuage: wavnorm [-n unitname]\n"
-                    "                [-g gain] [-i intensity] [-z size]\n"
-                    "                [-v] [-V] rotofile\n");
+    fprintf(stderr, "Usage: wavnorm [-n unitname]\n"
+                    "               [-g gain] [-i intensity] [-z size]\n"
+                    "               [-v] [-V] rotofile\n");
 }
 
 static void NormUnit(Wave* Dest, Wave* Sorc)

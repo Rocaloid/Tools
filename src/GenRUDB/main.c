@@ -11,11 +11,11 @@
 
 static void PrintUsage()
 {
-    fprintf(stderr, "Usuage: genrudb [-n unitname] [-r]\n"
-                    "                [-u freq] [-l freq] [-m method]\n"
-                    "                [-s freq] [-h hopsize] [-z size]\n"
-                    "                [-w window] [-t position] [-o offset]\n"
-                    "                [-i threshold] [-v] [-V] rotofile\n");
+    fprintf(stderr, "Usage: genrudb [-n unitname] [-r]\n"
+                    "               [-u freq] [-l freq] [-m method]\n"
+                    "               [-s freq] [-h hopsize] [-z size]\n"
+                    "               [-w window] [-t position] [-o offset]\n"
+                    "               [-i threshold] [-v] [-V] rotofile\n");
 }
 
 int main(int ArgN, char** Arg)

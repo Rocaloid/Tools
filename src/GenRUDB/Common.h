@@ -1,7 +1,7 @@
 #ifndef GENRUDB_COMMON_H
 #define GENRUDB_COMMON_H
 
-#define Version "1.0.0.2"
+#define Version "1.0.0.3"
 
 char* CRotoFile;
 char* CUnitName;

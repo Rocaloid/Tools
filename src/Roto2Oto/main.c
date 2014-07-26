@@ -5,14 +5,14 @@
 #include <RUCE.h>
 #include "../Commons.h"
 
-#define Version "1.0.0.0"
+#define Version "1.0.0.1"
 
 int   VerboseFlag = 0;
 char* CRotoFile = NULL;
 
 static void PrintUsage()
 {
-    fprintf(stderr, "Usuage: roto2oto [-v] [-V] rotofile\n");
+    fprintf(stderr, "Usage: roto2oto [-v] [-V] rotofile\n");
 }
 
 int main(int ArgN, char** Arg)
