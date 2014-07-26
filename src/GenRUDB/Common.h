@@ -1,17 +1,7 @@
 #ifndef GENRUDB_COMMON_H
 #define GENRUDB_COMMON_H
 
-#define Wave CDSP2_Wave_Float
-#define F0Iterlyzer CSVP_F0Iterlyzer_Float
-#define PSOLAIterlyzer CSVP_PSOLAIterlyzer_Float
-#define HNMIterlyzer CSVP_HNMIterlyzer_Float
-#define HNMFrame CSVP_HNMFrame_Float
-#define DataFrame CDSP2_DataFrame_Float
-#define List_HNMContour CSVP_List_HNMContour_Float
-#define HNMContour CSVP_HNMContour_Float
-#define Real Float
-
-#define Version "1.0.0.1"
+#define Version "1.0.0.2"
 
 char* CRotoFile;
 char* CUnitName;
@@ -43,9 +33,6 @@ enum
     YIN = 0,
     SpecStep = 1
 } EF0;
-
-void DirFromFilePath(String* Dest, String* Sorc);
-void BaseFromFilePath(String* Dest, String* Sorc);
 
 #endif
 

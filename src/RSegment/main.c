@@ -27,9 +27,6 @@ OPTIONS
         ending of an utterance).
 */
 
-#define Wave CDSP2_Wave_Float
-#define Real Float
-
 Array_Define(int, SegList);
 
 #include "../Commons.h"

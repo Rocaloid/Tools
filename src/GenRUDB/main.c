@@ -7,6 +7,7 @@
 #include <RUCE.h>
 
 #include "Common.h"
+#include "../Commons.h"
 
 static void PrintUsage()
 {
@@ -94,13 +95,13 @@ int main(int ArgN, char** Arg)
     
     if(optind > ArgN - 1)
     {
-        fprintf(stderr, "Missing argument 'rotofile'.\n");
+        fprintf(stderr, "[Error] Missing argument 'rotofile'.\n");
         PrintUsage();
         return 1;
     }
     if(optind < ArgN - 1)
     {
-        fprintf(stderr, "Redundant argument '%s'.\n", Arg[optind + 1]);
+        fprintf(stderr, "[Error] Redundant argument '%s'.\n", Arg[optind + 1]);
     }
     CRotoFile = Arg[optind];
     

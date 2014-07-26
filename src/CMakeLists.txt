@@ -16,6 +16,7 @@ target_link_libraries(genroto RFNL)
 target_link_libraries(genroto m)
 
 aux_source_directory(./GenRUDB GRUDB_SRC_LIST)
+aux_source_directory(. GRUDB_SRC_LIST)
 add_executable(genrudb ${GRUDB_SRC_LIST})
 target_link_libraries(genrudb RUCE)
 target_link_libraries(genrudb CVESVP)
@@ -23,30 +24,46 @@ target_link_libraries(genrudb CVEDSP2)
 target_link_libraries(genrudb RFNL)
 target_link_libraries(genrudb m)
 
+aux_source_directory(./WavNorm WNORM_SRC_LIST)
+aux_source_directory(. WNORM_SRC_LIST)
+add_executable(wavnorm ${WNORM_SRC_LIST})
+target_link_libraries(wavnorm RUCE)
+target_link_libraries(wavnorm CVESVP)
+target_link_libraries(wavnorm CVEDSP2)
+target_link_libraries(wavnorm RFNL)
+target_link_libraries(wavnorm m)
+
 ADD_CUSTOM_TARGET(ManPages ALL)
 
 ADD_CUSTOM_COMMAND(
     TARGET ManPages
-    SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/GenRUDB/man.pod 
-    COMMAND pod2man ARGS -s 1  -n GenRUDB --center='Rocaloid Toolchain' -s 1
-        -r GenRUDB-1.0.0.1 ${CMAKE_CURRENT_SOURCE_DIR}/GenRUDB/man.pod
+    SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/GenRUDB/man.pod
+           ${CMAKE_CURRENT_SOURCE_DIR}/WavNorm/man.pod
+    COMMAND pod2man ARGS -n GenRUDB --center='Rocaloid Toolchain' -s 1
+        -r GenRUDB-1.0.0.2 ${CMAKE_CURRENT_SOURCE_DIR}/GenRUDB/man.pod
         ${CMAKE_CURRENT_BINARY_DIR}/genrudb.1 
+    COMMAND pod2man ARGS -n WavNorm --center='Rocaloid Toolchain' -s 1
+        -r WavNorm-1.0.0.0 ${CMAKE_CURRENT_SOURCE_DIR}/WavNorm/man.pod
+        ${CMAKE_CURRENT_BINARY_DIR}/wavnorm.1 
     OUTPUTS ${CMAKE_CURRENT_BINARY_DIR}/genrudb.1
+            ${CMAKE_CURRENT_BINARY_DIR}/wavnorm.1
 )
 
 ADD_CUSTOM_COMMAND(
     TARGET ManPages
     SOURCE ManPages
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/genrudb.1
+            ${CMAKE_CURRENT_BINARY_DIR}/wavnorm.1
 )
 
 INSTALL(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/genrudb.1
+          ${CMAKE_CURRENT_BINARY_DIR}/wavnorm.1
     DESTINATION share/man/man1
 )
 
 INSTALL(
-    TARGETS genrudb
+    TARGETS genrudb rsegment genroto wavnorm
     DESTINATION bin/
 )
 

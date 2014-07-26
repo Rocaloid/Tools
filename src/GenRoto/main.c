@@ -11,8 +11,6 @@ SYNOPSIS
     genroto recfile
 */
 
-#define Real Float
-
 #include "../Commons.h"
 
 int main(int ArgN, char** Arg)

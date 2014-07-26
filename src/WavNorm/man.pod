@@ -1,0 +1,62 @@
+=head1 NAME
+
+WavNorm - Normalize wav files.
+
+=head1 SYNOPSIS
+
+wavnorm [Other Options] [-n unitname] rotofile
+
+=head1 OPTIONS
+
+=head2 Behaviour
+
+B<-n> I<unitname>
+
+    Only normalize the specified vocal unit.
+
+    Default: Disabled(batch process all units in roto)
+
+B<-g> I<gain>
+
+    Gain the wave that the mean energy reaches the specified multiple of intensity.
+    
+    Default: 1.5
+
+B<-i> I<intensity>
+
+    Set a limit on the local intensity. Unit: Decibel.
+    
+    Default: -50
+
+B<-z> I<size>
+
+    Size of analysis window.
+    
+    Default: 1024
+
+=head2 Other
+
+B<-V>
+
+    Verbose.
+
+    Default: disabled
+
+B<-v>
+
+    Print version.
+
+    Default: disabled
+
+=head1 VERSION
+
+WavNorm 1.0.0.0
+
+=head1 LICENSE
+
+Rocaloid Toolchain is released under GPLv3.
+
+=head1 AUTHOR
+
+Hua Kanru(sleepwalking(at)rocaloid.org)
+
