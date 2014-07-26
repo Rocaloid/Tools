@@ -33,7 +33,7 @@ int main(int ArgN, char** Arg)
     VOT = 0;
     VOTFlag = 0;
     Offset = 500;
-    InvarThreshold = 0.004;
+    InvarThreshold = 0.003;
     VerboseFlag = 0;
     
     int c;

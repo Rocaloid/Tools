@@ -211,7 +211,8 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     LocalDiff_Index = ContourList.Frames_Index;
     for(i = 0; i <= LocalDiff_Index; i ++) LocalDiff[i] = 0;
     
-    for(i = ContourList.Frames_Index / 20; i < ContourList.Frames_Index / 10;
+    for(i = ContourList.Frames_Index * 0.02;
+        i < ContourList.Frames_Index * 0.07;
         i ++)
     {
         HNMContour* Cmp1 = & ContourList.Frames[i * 10];
