@@ -25,8 +25,5 @@ static void ParseRecFile(File* Sorc)
     }
 }
 
-void DirFromFilePath(String* Dest, String* Sorc);
-void BaseFromFilePath(String* Dest, String* Sorc);
-
 #endif
 

@@ -5,7 +5,7 @@
 #include <RUCE.h>
 #include "../Commons.h"
 
-#define Version "1.0.0.1"
+#define Version "1.0.0.2"
 
 int   VerboseFlag = 0;
 char* CRotoFile = NULL;

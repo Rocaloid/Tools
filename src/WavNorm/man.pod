@@ -50,7 +50,7 @@ B<-v>
 
 =head1 VERSION
 
-WavNorm 1.0.0.1
+WavNorm 1.0.0.2
 
 =head1 LICENSE
 
