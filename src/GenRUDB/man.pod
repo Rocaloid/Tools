@@ -90,7 +90,7 @@ B<-i> I<threshold>
 
     Threshold for invariant region analysis.
 
-    Default: 0.004
+    Default: 0.003
 
 B<-V>
 
@@ -106,7 +106,7 @@ B<-v>
 
 =head1 VERSION
 
-GenRUDB 1.0.0.5
+GenRUDB 1.0.1.0
 
 =head1 LICENSE
 
