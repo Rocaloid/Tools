@@ -171,11 +171,11 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
         HNMFrame*  SorcEntry = & HAna.HNMList.Frames[i];
         DataFrame* SorcPhase = & HAna.PhseList.Frames[i];
         
-        for(j = 0; j < WinSize / 2; j ++)
+        for(j = 0; j < WinSize / 2 + 1; j ++)
             SorcEntry -> Noiz[j] = SorcEntry -> Noiz[j] < -1000 ? -1000 :
                 SorcEntry -> Noiz[j];
         RCall(CDSP2_Resample_Linear, Real)(DestEntry -> Noiz, SorcEntry -> Noiz,
-            WinSize / 16, WinSize / 2);
+            WinSize / 16, WinSize / 2 + 1);
         
         Array_Resize(float, DestEntry -> Freq, SorcPhase -> Size);
         Array_Resize(float, DestEntry -> Ampl, SorcPhase -> Size);
