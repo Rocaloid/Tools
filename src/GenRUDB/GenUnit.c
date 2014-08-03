@@ -189,6 +189,16 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
             DestEntry -> Freq[j] = SorcEntry -> Hmnc.Freq[j];
             DestEntry -> Ampl[j] = SorcEntry -> Hmnc.Ampl[j];
             DestEntry -> Phse[j] = SorcPhase -> Data[j];
+            
+            //Harmonic correction
+            if(HCorrThreshold < 200.0 && i > 0 && j > 1 && j < 15)
+                if(fabs(DestEntry -> Freq[j] - (DestEntry -> Freq[j - 1] +
+                    DestEntry -> Freq[0])) > HCorrThreshold)
+                {
+                    DestEntry -> Freq[j] = DestEntry -> Freq[j - 1] +
+                                           DestEntry -> Freq[0];
+                    DestEntry -> Ampl[j] = (DestEntry - 1) -> Ampl[j];
+                }
         }
     }
     RDelete(& PAna);

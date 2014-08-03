@@ -14,8 +14,9 @@ static void PrintUsage()
     fprintf(stderr, "Usage: genrudb [-n unitname] [-r]\n"
                     "               [-u freq] [-l freq] [-m method]\n"
                     "               [-s freq] [-h hopsize] [-z size]\n"
-                    "               [-w window] [-t position] [-o offset]\n"
-                    "               [-i threshold] [-v] [-V] rotofile\n");
+                    "               [-c threshold] [-w window] [-t position]\n"
+                    "               [-o offset] [-i threshold] [-v] [-V]\n"
+                    "               rotofile\n");
 }
 
 int main(int ArgN, char** Arg)
@@ -29,6 +30,7 @@ int main(int ArgN, char** Arg)
     USinuFreq = 10000;
     HopSize = 256;
     WinSize = 2048;
+    HCorrThreshold = 30.0;
     CWindow = "hanning";
     VOT = 0;
     VOTFlag = 0;
@@ -64,6 +66,9 @@ int main(int ArgN, char** Arg)
             break;
             case 'z':
                 WinSize = atoi(optarg);
+            break;
+            case 'c':
+                HCorrThreshold = atof(optarg);
             break;
             case 'w':
                 CWindow = optarg;

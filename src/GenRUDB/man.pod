@@ -64,6 +64,15 @@ B<-z> I<size>
 
     Default: 2048
 
+B<-c> I<threshold>
+
+    Threshold of frequency error for harmonics. Unit: Hertz.
+    
+    If a harmonic is deviated from the multiple of F0 by a frequency larger
+than this threshold, the harmonic will be corrected to the relevant F0 multiple.
+
+    Default: 30
+
 B<-w> I<window>
 
     Analysis window.
@@ -106,7 +115,7 @@ B<-v>
 
 =head1 VERSION
 
-GenRUDB 1.0.1.0
+GenRUDB 1.0.2.0
 
 =head1 LICENSE
 

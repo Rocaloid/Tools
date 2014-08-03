@@ -1,7 +1,7 @@
 #ifndef GENRUDB_COMMON_H
 #define GENRUDB_COMMON_H
 
-#define Version "1.0.1.0"
+#define Version "1.0.2.0"
 
 char* CRotoFile;
 char* CUnitName;
@@ -10,6 +10,7 @@ float UFundFreq;
 float LFundFreq;
 char* CFundMethod;
 float USinuFreq;
+float HCorrThreshold;
 int   HopSize;
 int   WinSize;
 char* CWindow;
