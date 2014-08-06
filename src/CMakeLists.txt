@@ -1,5 +1,14 @@
-cmake_minimum_required(VERSION 2.8)
+﻿cmake_minimum_required(VERSION 2.8.11)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Ofast -fPIC")
+
+# uninstall target
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
+    IMMEDIATE @ONLY)
+
+add_custom_target(uninstall
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 
 aux_source_directory(./RSegment RSEG_SRC_LIST)
 add_executable(rsegment ${RSEG_SRC_LIST})
@@ -41,13 +50,15 @@ target_link_libraries(roto2oto CVEDSP2)
 target_link_libraries(roto2oto RFNL)
 target_link_libraries(roto2oto m)
 
+aux_source_directory(./Utau2Rec U2REC_SRC_LIST)
+aux_source_directory(. U2REC_SRC_LIST)
+add_executable(utau2rec ${U2REC_SRC_LIST})
+target_link_libraries(utau2rec RUtil2)
+
 ADD_CUSTOM_TARGET(ManPages ALL)
 
 ADD_CUSTOM_COMMAND(
     TARGET ManPages
-    SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/GenRUDB/man.pod
-           ${CMAKE_CURRENT_SOURCE_DIR}/WavNorm/man.pod
-           ${CMAKE_CURRENT_SOURCE_DIR}/Roto2Oto/man.pod
     COMMAND pod2man ARGS -n GenRUDB --center='Rocaloid Toolchain' -s 1
         -r GenRUDB ${CMAKE_CURRENT_SOURCE_DIR}/GenRUDB/man.pod
         ${CMAKE_CURRENT_BINARY_DIR}/genrudb.1
@@ -64,7 +75,6 @@ ADD_CUSTOM_COMMAND(
 
 ADD_CUSTOM_COMMAND(
     TARGET ManPages
-    SOURCE ManPages
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/genrudb.1
             ${CMAKE_CURRENT_BINARY_DIR}/wavnorm.1
             ${CMAKE_CURRENT_BINARY_DIR}/roto2oto.1
@@ -78,7 +88,7 @@ INSTALL(
 )
 
 INSTALL(
-    TARGETS genrudb rsegment genroto wavnorm roto2oto
+    TARGETS genrudb rsegment genroto wavnorm roto2oto utau2rec
     DESTINATION bin/
 )
 
