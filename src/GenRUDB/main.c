@@ -1,4 +1,4 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <unistd.h>
 
 #include <RUtil2.h>
@@ -6,6 +6,7 @@
 #include <CVESVP.h>
 #include <RUCE.h>
 
+#include "GenUnit.h"
 #include "Common.h"
 #include "../Commons.h"
 
