@@ -1,4 +1,4 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <unistd.h>
 #include <RUtil2.h>
 #include <CVEDSP2.h>
@@ -9,22 +9,14 @@ NAME
     RSegment - Split .wav according to audacity label track & recording table.
 
 SYNOPSIS
-    rsegment [-r] [-t] [-g noisegate] [-e endinggate]
+    rsegment [-r]
              wavfile labelfile recfile
 
 OPTIONS
     -r
         Regenerate audacity label track bounded with words from word tabel.
-    
-    -t
-        Automatically trim the output files.
-    
-    -g <noisegate>
-        Specify the noise gate(the threshold to distinguish noise from vocals).
-    
-    -e <endinggate>
-        Similar to -g. Specify the ending gate(the threshold to detect the
-        ending of an utterance).
+   
+    NOTE: Trimming has been moved to WavNorm.
 */
 
 Array_Define(int, SegList);
@@ -50,30 +42,8 @@ static void ParseLabelFile(File* Sorc, int SampleRate)
     String_Dtor(& Temp);
 }
 
-static int FindBound(Real* Sorc, int Size, Real Threshold, int Direction)
-{
-    int i;
-    if(Direction < 0)
-    {
-        for(i = Size - 1; i >= 0; i --)
-            if(Sorc[i] > Threshold || Sorc[i] < - Threshold)
-                break;
-    }else
-    {
-        for(i = 0; i < Size; i ++)
-            if(Sorc[i] > Threshold || Sorc[i] < - Threshold)
-                break;
-        if(i == Size)
-            i = -1;
-    }
-    return i;
-}
-
 int main(int ArgN, char** Arg)
 {
-    float Threshold = 0.005; //Default
-    float EndingThreshold = 0.01; //Default
-    int TrimFlag = 0;
     int RegenFlag = 0;
     
     char* CWaveFile = NULL;
@@ -83,25 +53,16 @@ int main(int ArgN, char** Arg)
     
     int c;
     
-    while((c = getopt(ArgN, Arg, "rtg:e:")) != -1)
+    while((c = getopt(ArgN, Arg, "r")) != -1)
     {
         switch(c)
         {
             case 'r':
                 RegenFlag = 1;
             break;
-            case 't':
-                TrimFlag = 1;
-            break;
-            case 'g':
-                Threshold = atof(optarg);
-            break;
-            case 'e':
-                EndingThreshold = atof(optarg);
-            break;
             case '?':
-                printf("Usage: rsegment [-r] [-t] [-g noisegate] "
-                           "[-e endinggate] [-h] wavfile labelfile recfile\n");
+                printf("Usage: rsegment [-r] "
+                           "[-h] wavfile labelfile recfile\n");
                 return 1;
             default:
                 abort();
@@ -219,25 +180,8 @@ int main(int ArgN, char** Arg)
         Real* Data = RCall(RAlloc, Real)(Size);
         RCall(Wave, Read)(& SorcWave, Data, Start, Size);
         
-        int LBound, RBound;
-        LBound = 0;
-        RBound = Size;
-        if(TrimFlag)
-        {
-            LBound = FindBound(Data, Size, Threshold,  1);
-            RBound = FindBound(Data, Size, EndingThreshold, -1);
-            if(LBound < 0 || RBound < 0 || RBound - LBound <= 0)
-            {
-                fprintf(stderr, "Boundary detection failed for '%s'.\n",
-                    String_GetChars(Name));
-                LBound = 0;
-                RBound = Size;
-            }else
-                Size = RBound - LBound;
-        }
-        
         RCall(Wave, Resize)(& SegWave, Size);
-        RCall(Wave, Write)(& SegWave, Data + LBound, 0, Size);
+        RCall(Wave, Write)(& SegWave, Data, 0, Size);
         if(! RCall(Wave, ToFile)(& SegWave, & SegName))
             fprintf(stderr, "Exporting '%s' failed. Skipped.\n",
                 String_GetChars(& SegName));

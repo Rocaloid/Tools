@@ -1,4 +1,4 @@
-#include <unistd.h>
+﻿#include <unistd.h>
 
 #include <RUtil2.h>
 #include <CVEDSP2.h>
@@ -6,6 +6,18 @@
 #include <RUCE.h>
 #include "../Commons.h"
 
+/*
+    -t
+        Automatically trim the output files.
+    
+    -s <noisegate>
+        Specify the noise gate(the threshold to distinguish noise from vocals).
+    
+    -e <endinggate>
+        Similar to -s. Specify the ending gate(the threshold to detect the
+        ending of an utterance).
+*/
+        
 #define Version "1.0.0.2"
 
 int   VerboseFlag = 0;
@@ -14,10 +26,14 @@ float Gain = 1.5;
 float Intensity = -50;
 int   WinSize = 1024;
 char* CRotoFile = NULL;
+float Threshold = 0.005;
+float EndingThreshold = 0.01;
+int TrimFlag = 0;
 
 static void PrintUsage()
 {
     fprintf(stderr, "Usage: wavnorm [-n unitname]\n"
+                    "               [-t] [-s noisegate] [-e endinggate]\n"
                     "               [-g gain] [-i intensity] [-z size]\n"
                     "               [-v] [-V] rotofile\n");
 }
@@ -56,13 +72,59 @@ static void NormUnit(Wave* Dest, Wave* Sorc)
     RCall(NormIterfector, Dtor)(& Normalizer);
 }
 
+static int FindBound(Real* Sorc, int Size, Real Threshold, int Direction)
+{
+    int i;
+    if(Direction < 0)
+    {
+        for(i = Size - 1; i >= 0; i --)
+            if(Sorc[i] > Threshold || Sorc[i] < - Threshold)
+                break;
+    }else
+    {
+        for(i = 0; i < Size; i ++)
+            if(Sorc[i] > Threshold || Sorc[i] < - Threshold)
+                break;
+        if(i == Size)
+            i = -1;
+    }
+    return i;
+}
+
+static void TrimUnit(Wave* Dest, Wave* Sorc)
+{
+    int Size = Sorc -> Size;
+    Real* Data = RCall(Wave, GetUnsafePtr)(Sorc);
+    int LBound = FindBound(Data, Size, Threshold,  1);
+    int RBound = FindBound(Data, Size, EndingThreshold, -1);
+    if(LBound < 0 || RBound < 0 || RBound - LBound <= 0)
+    {
+        fprintf(stderr, "Boundary detection failed!\n");
+        LBound = 0;
+        RBound = Size;
+    }
+    else
+        Size = RBound - LBound;
+    RCall(Wave, Resize)(Dest, Size);
+    RCall(Wave, Write)(Dest, Data + LBound, 0, Size);
+}
+
 int main(int ArgN, char** Arg)
 {
     int c;
-    while((c = getopt(ArgN, Arg, "n:g:i:z:Vv")) != -1)
+    while((c = getopt(ArgN, Arg, "ts:e:n:g:i:z:Vv")) != -1)
     {
         switch(c)
         {
+            case 't':
+                TrimFlag = 1;
+            break;
+            case 's':
+                Threshold = atof(optarg);
+            break;
+            case 'e':
+                EndingThreshold = atof(optarg);
+            break;
             case 'n':
                 CUnitName = optarg;
             break;
@@ -132,6 +194,7 @@ int main(int ArgN, char** Arg)
     
     String DirName;
     String_Ctor(& DirName);
+    
     if(CUnitName)
     {
         //Generate single unit.
@@ -150,6 +213,12 @@ int main(int ArgN, char** Arg)
         }else
         {
             printf("Generating unit \'%s\'...\n", String_GetChars(& UnitName));
+            
+            if(TrimFlag)
+            {
+                TrimUnit(& OutWave, & InWave);
+                RCall(Wave, From)(& InWave, & OutWave);
+            }
             NormUnit(& OutWave, & InWave);
             
             if(VerboseFlag)
@@ -182,6 +251,11 @@ int main(int ArgN, char** Arg)
             
             printf("Generating unit \'%s\'...\n",
                 String_GetChars(& Entry.Name));
+            if(TrimFlag)
+            {
+                TrimUnit(& OutWave, & InWave);
+                RCall(Wave, From)(& InWave, & OutWave);
+            }
             NormUnit(& OutWave, & InWave);
             
             if(VerboseFlag)
