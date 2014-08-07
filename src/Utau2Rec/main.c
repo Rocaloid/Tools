@@ -3,53 +3,54 @@
 
 int main(int argc, char *argv[])
 {
-    String out;
-    File f;
-    String_Ctor(& out);
-    File_Ctor(& f);
+    String OutPath;
+    File OutFile;
+    String_Ctor(& OutPath);
+    File_Ctor(& OutFile);
     
     if(argc == 2)
-        String_SetChars(& out, "./rec.txt");
+        String_SetChars(& OutPath, "./rec.txt");
     else if(argc == 3)
-        String_SetChars(& out, argv[2]);
+        String_SetChars(& OutPath, argv[2]);
     else
     {
-        printf("Usage: %s Utau-Voicebank-Path [OutputFile]\n    By default, output file is rec.txt.\n", argv[0]);
-        String_Dtor(& out);
-        File_Dtor(& f);
+        printf("Usage: %s Utau-Voicebank-Path [OutputFile]\n    By default, "
+               "output file is rec.txt.\n", argv[0]);
+        String_Dtor(& OutPath);
+        File_Dtor(& OutFile);
         return 1;
     }
     
-    File_Open(& f, & out, WRITEONLY);
+    File_Open(& OutFile, & OutPath, WRITEONLY);
     
     Directory d;
     Directory_Ctor(& d);
     
-    String_FromChars(s, argv[1]);
-    String_FromChars(WC, "*.wav");
-    String o, tmp;
-    String_Ctor(& o);
-    String_Ctor(& tmp);
+    String_FromChars(CDirPath, argv[1]);
+    String_FromChars(Match, "*.wav");
+    String FileName, Temp;
+    String_Ctor(& FileName);
+    String_Ctor(& Temp);
     
-    File_OpenDir(& d, & s);
-    File_SetDirFilter(& d, & WC);
+    File_OpenDir(& d, & CDirPath);
+    File_SetDirFilter(& d, & Match);
     File_SetDirFlags(& d, FILEONLY);
-    while(File_ReadDir(& d, & o) != 1)
+    while(File_ReadDir(& d, & FileName) != 1)
     {
-        Left(& tmp, & o, String_GetLength(& o) - 4);
-        File_Write_String(& f, & tmp);
-        File_Write_Chars(& f, " ");
+        Left(& Temp, & FileName, String_GetLength(& FileName) - 4);
+        File_Write_String(& OutFile, & Temp);
+        File_Write_Chars(& OutFile, " ");
     }
     File_CloseDir(& d);
     
-    String_Dtor(& tmp);
-    String_Dtor(& o);
-    String_Dtor(& s);
-    String_Dtor(& WC);
+    String_Dtor(& Temp);
+    String_Dtor(& FileName);
+    String_Dtor(& CDirPath);
+    String_Dtor(& Match);
     Directory_Dtor(& d);
     
-    File_Close(& f);
+    File_Close(& OutFile);
     
-    String_Dtor(& out);
-    File_Dtor(& f);
+    String_Dtor(& OutPath);
+    File_Dtor(& OutFile);
 }

@@ -71,7 +71,7 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     F0Iter.Option.Threshold = 0.01;
     F0Iter.Option.YIN.W = 300;
     F0Iter.Option.YIN.Threshold = 0.2;
-    if((EF0 = YIN))
+    if(EF0 == YIN)
         F0Iter.Option.Method = CSVP_F0_YIN;
     else
         F0Iter.Option.Method = CSVP_F0_SpecStep;
