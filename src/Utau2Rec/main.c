@@ -23,8 +23,8 @@ int main(int argc, char *argv[])
     
     File_Open(& OutFile, & OutPath, WRITEONLY);
     
-    Directory d;
-    Directory_Ctor(& d);
+    Directory SrcDir;
+    Directory_Ctor(& SrcDir);
     
     String_FromChars(CDirPath, argv[1]);
     String_FromChars(Match, "*.wav");
@@ -32,22 +32,22 @@ int main(int argc, char *argv[])
     String_Ctor(& FileName);
     String_Ctor(& Temp);
     
-    File_OpenDir(& d, & CDirPath);
-    File_SetDirFilter(& d, & Match);
-    File_SetDirFlags(& d, FILEONLY);
-    while(File_ReadDir(& d, & FileName) != 1)
+    File_OpenDir(& SrcDir, & CDirPath);
+    File_SetDirFilter(& SrcDir, & Match);
+    File_SetDirFlags(& SrcDir, FILEONLY);
+    while(File_ReadDir(& SrcDir, & FileName) != 1)
     {
         Left(& Temp, & FileName, String_GetLength(& FileName) - 4);
         File_Write_String(& OutFile, & Temp);
         File_Write_Chars(& OutFile, " ");
     }
-    File_CloseDir(& d);
+    File_CloseDir(& SrcDir);
     
     String_Dtor(& Temp);
     String_Dtor(& FileName);
     String_Dtor(& CDirPath);
     String_Dtor(& Match);
-    Directory_Dtor(& d);
+    Directory_Dtor(& SrcDir);
     
     File_Close(& OutFile);
     
