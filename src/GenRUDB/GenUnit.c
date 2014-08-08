@@ -76,10 +76,10 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     else
         F0Iter.Option.Method = CSVP_F0_SpecStep;
     
-    int TempSize = VOT + 10000 > WSize ? WSize : VOT + 10000;
+    int TempSize = WSize / 2 + 10000 > WSize ? WSize : WSize / 2 + 10000;
     RCall(F0Iterlyzer, SetHopSize)(& F0Iter, 256);
     RCall(F0Iterlyzer, SetWave)(& F0Iter, Sorc);
-    RCall(F0Iterlyzer, SetPosition)(& F0Iter, VOT + 2000);
+    RCall(F0Iterlyzer, SetPosition)(& F0Iter, WSize / 2);
     if(RCall(F0Iterlyzer, PreAnalysisTo)(& F0Iter, TempSize) < 1)
     {
         fprintf(stderr, "[Error] Fundamental frequency estimation failed. "
@@ -87,7 +87,7 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
         RDelete(& F0Iter);
         return 0;
     }
-    RCall(F0Iterlyzer, PrevTo)(& F0Iter, VOT);
+    RCall(F0Iterlyzer, PrevTo)(& F0Iter, 0);
     RCall(F0Iterlyzer, IterNextTo)(& F0Iter, Sorc -> Size);
     RCall(CSVP_F0PostProcess, Real)(& F0Iter.F0List, 4000, 0.15,
         LFundFreq, UFundFreq);
