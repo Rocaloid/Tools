@@ -1,7 +1,7 @@
 #ifndef GENRUDB_COMMON_H
 #define GENRUDB_COMMON_H
 
-#define Version "1.0.2.0"
+#define Version "1.1.0.0"
 
 char* CRotoFile;
 char* CUnitName;
@@ -16,7 +16,6 @@ int   WinSize;
 char* CWindow;
 int   VOT;
 int   VOTFlag;
-int   Offset;
 float InvarThreshold;
 int   VerboseFlag;
 

@@ -1,4 +1,4 @@
-﻿#include "GenUnit.h"
+#include "GenUnit.h"
 #include <stdlib.h>
 #include <CVESVP.h>
 
@@ -46,22 +46,6 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     printf("Generating unit \'%s\'...\n", String_GetChars(& Ret -> Name));
     RCall(Wave, Resize)(Sorc, Sorc -> Size + WinSize * 2);
     
-    //VOT detection
-    if(! VOTFlag)
-        VOT = RCall(CSVP_VOTFromWave, Real)(Sorc, 0, WSize);
-    
-    if(VOT > Sorc -> Size * 2 / 3)
-    {
-        fprintf(stderr, "[Error] VOT(%d) is too large for unit '%s'. "
-                        "Skipped.\n",
-            VOT, String_GetChars(& Ret -> Name));
-        return 0;
-    }
-    
-    if(VerboseFlag)
-    printf("VOT = %d\n", VOT);
-    Ret -> VOT = VOT;
-    
     //F0 estimation
     F0Iterlyzer F0Iter;
     RCall(F0Iterlyzer, Ctor)(& F0Iter);
@@ -92,40 +76,18 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     RCall(CSVP_F0PostProcess, Real)(& F0Iter.F0List, 4000, 0.15,
         LFundFreq, UFundFreq);
     
+    if(! VOTFlag)
+        VOT = RCall(CSVP_VOTFromF0Match, Real)(& F0Iter.F0List, 30, 3, 1000);
+    
+    if(VerboseFlag)
+    printf("VOT = %d\n", VOT);
+    
     Real Sum = RCall(CDSP2_VSum, Real)(F0Iter.F0List.Y, 0,
         F0Iter.F0List.Y_Index + 1);
     
     if(VerboseFlag)
     printf("Average fundamental frequency: %fHz\n",
         (Real)Sum / ((Real)F0Iter.F0List.Y_Index + 1.0));
-    
-    //PSOLA Analysis
-    if(VerboseFlag)
-    printf("PSOLA analysis...\n");
-    PSOLAIterlyzer PAna;
-    RCall(PSOLAIterlyzer, Ctor)(& PAna);
-    RCall(PSOLAIterlyzer, SetWave)(& PAna, Sorc);
-    RCall(PSOLAIterlyzer, SetPosition)(& PAna, VOT + 3000);
-    RCall(PSOLAIterlyzer, SetBound)(& PAna, VOT);
-    RCall(PSOLAIterlyzer, SetPitch)(& PAna, & F0Iter.F0List);
-    if(RCall(PSOLAIterlyzer, PreAnalysisTo)(& PAna, TempSize) < 1)
-    {
-        fprintf(stderr, "[Error] PSOLA pre-analysis failed. Skipped.\n");
-        RDelete(& F0Iter, & PAna);
-        return 0;
-    }
-    if(RCall(PSOLAIterlyzer, IterNextTo)(& PAna, WSize) < 1)
-    {
-        fprintf(stderr, "[Error] PSOLA forward analysis failed. Skipped.\n");
-        RDelete(& F0Iter, & PAna);
-        return 0;
-    }
-    if(RCall(PSOLAIterlyzer, PrevTo)(& PAna, 0) < 1)
-    {
-        fprintf(stderr, "[Error] PSOLA backward analysis failed. Skipped.\n");
-        RDelete(& F0Iter, & PAna);
-        return 0;
-    }
     
     //HNM Analysis
     HNMIterlyzer HAna;
@@ -134,20 +96,25 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     RCall(HNMIterlyzer, CtorSize)(& HAna, WinSize);
     RCall(HNMIterlyzer, SetWave)(& HAna, Sorc);
     RCall(HNMIterlyzer, SetHopSize)(& HAna, HopSize);
-    RCall(HNMIterlyzer, SetPosition)(& HAna, VOT + Offset + 2000);
+    RCall(HNMIterlyzer, SetPosition)(& HAna, VOT + 2000);
     RCall(HNMIterlyzer, SetUpperFreq)(& HAna, USinuFreq);
     RCall(HNMIterlyzer, SetPitch)(& HAna, & F0Iter.F0List);
     HAna.GenPhase = 1;
-    if(! RCall(HNMIterlyzer, PrevTo)(& HAna, VOT + Offset))
+    HAna.LeftBound = VOT + 1500;
+    if(VerboseFlag)
+        printf("Backward HNM analysis...\n");
+    if(! RCall(HNMIterlyzer, PrevTo)(& HAna, 0))
     {
         fprintf(stderr, "[Error] HNM backward analysis failed. Skipped.\n");
-        RDelete(& F0Iter, & PAna, & HAna);
+        RDelete(& F0Iter, & HAna);
         return 0;
     }
+    if(VerboseFlag)
+        printf("Forward analysis...\n");
     if(! RCall(HNMIterlyzer, IterNextTo)(& HAna, WSize))
     {
         fprintf(stderr, "[Error] HNM forward analysis failed. Skipped.\n");
-        RDelete(& F0Iter, & PAna, & HAna);
+        RDelete(& F0Iter, & HAna);
         return 0;
     }
     
@@ -159,7 +126,7 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     Dest -> HopSize = HopSize;
     Dest -> NoizSize = WinSize / 16;
     
-    Array_From(int, Dest -> PulseList, PAna.PulseList.Frames);
+    Array_Push(int, Dest -> PulseList, 0);
     Array_ObjResize(RUCE_DB_Frame, Dest -> FrameList,
         HAna.HNMList.Frames_Index + 1);
     Dest -> FrameList_Index = HAna.HNMList.Frames_Index;
@@ -190,6 +157,8 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
             DestEntry -> Ampl[j] = SorcEntry -> Hmnc.Ampl[j];
             DestEntry -> Phse[j] = SorcPhase -> Data[j];
             
+            if(DestEntry -> Ampl[j] <= 0)
+                DestEntry -> Ampl[j] = 0.0000001;
             //Harmonic correction
             if(HCorrThreshold < 200.0 && i > 0 && j > 1 && j < 15)
                 if(fabs(DestEntry -> Freq[j] - (DestEntry -> Freq[j - 1] +
@@ -201,18 +170,17 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
                 }
         }
     }
-    RDelete(& PAna);
     
     if(VerboseFlag)
     printf("Invariant region analysis...\n");
     //Generate Invar end points
     List_HNMContour ContourList;
+    int VOTIndex = CDSP2_List_Int_IndexAfter(& HAna.PulseList, VOT);
     RCall(List_HNMContour, CtorSize)(& ContourList,
-        HAna.HNMList.Frames_Index + 1, WinSize);
-    ContourList.Frames_Index = HAna.HNMList.Frames_Index;
+        HAna.HNMList.Frames_Index + 1 - VOTIndex, WinSize);
     
     for(i = 0; i <= ContourList.Frames_Index; i ++)
-        RCall(HNMFrame, ToContour)(& HAna.HNMList.Frames[i],
+        RCall(HNMFrame, ToContour)(& HAna.HNMList.Frames[i + VOTIndex],
             & ContourList.Frames[i]);
     
     Array_Define(Real, LocalDiff);
@@ -262,7 +230,7 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     for(j = MinIndex; j > 0; j --)
         if(AvgDiff[j] > InvarMin)
         {
-            Dest -> InvarLeft = HAna.PulseList.Frames[j];
+            Dest -> InvarLeft = HAna.PulseList.Frames[j + VOTIndex];
             Ret  -> InvarLeft = Dest -> InvarLeft;
             break;
         }
@@ -270,7 +238,7 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     for(j = MinIndex; j <= LocalDiff_Index; j ++)
         if(AvgDiff[j] > InvarMin)
         {
-            Dest -> InvarRight = HAna.PulseList.Frames[j];
+            Dest -> InvarRight = HAna.PulseList.Frames[j + VOTIndex];
             Ret  -> InvarRight = Dest -> InvarRight;
             break;
         }

@@ -44,7 +44,7 @@ B<-m> I<method>
 
     Default: YIN
 
-=head2 HNM & PSOLA Analysis
+=head2 HNM Analysis
 
 B<-s> I<frequency>
 
@@ -87,11 +87,6 @@ B<-t> I<position>
 
     Default: Automatic VOT detection
 
-B<-o> I<offset>
-
-    The offset(in relation with VOT) of left bound for HNM analysis.
-
-    Default: 500
 
 =head2 Other
 
@@ -115,7 +110,7 @@ B<-v>
 
 =head1 VERSION
 
-GenRUDB 1.0.2.0
+GenRUDB 1.1.0.0
 
 =head1 LICENSE
 

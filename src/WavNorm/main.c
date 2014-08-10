@@ -6,19 +6,7 @@
 #include <RUCE.h>
 #include "../Commons.h"
 
-/*
-    -t
-        Automatically trim the output files.
-    
-    -s <noisegate>
-        Specify the noise gate(the threshold to distinguish noise from vocals).
-    
-    -e <endinggate>
-        Similar to -s. Specify the ending gate(the threshold to detect the
-        ending of an utterance).
-*/
-        
-#define Version "1.0.0.2"
+#define Version "1.1.0.0"
 
 int   VerboseFlag = 0;
 char* CUnitName = NULL;

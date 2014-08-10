@@ -16,7 +16,7 @@ static void PrintUsage()
                     "               [-u freq] [-l freq] [-m method]\n"
                     "               [-s freq] [-h hopsize] [-z size]\n"
                     "               [-c threshold] [-w window] [-t position]\n"
-                    "               [-o offset] [-i threshold] [-v] [-V]\n"
+                    "               [-i threshold] [-v] [-V]\n"
                     "               rotofile\n");
 }
 
@@ -35,12 +35,11 @@ int main(int ArgN, char** Arg)
     CWindow = "hanning";
     VOT = 0;
     VOTFlag = 0;
-    Offset = 500;
     InvarThreshold = 0.003;
     VerboseFlag = 0;
     
     int c;
-    while((c = getopt(ArgN, Arg, "n:ru:l:m:s:h:z:w:t:o:i:Vv")) != -1)
+    while((c = getopt(ArgN, Arg, "n:ru:l:m:s:h:z:w:t:i:Vv")) != -1)
     {
         switch(c)
         {
@@ -77,9 +76,6 @@ int main(int ArgN, char** Arg)
             case 't':
                 VOT = atoi(optarg);
                 VOTFlag = 1;
-            break;
-            case 'o':
-                Offset = atoi(optarg);
             break;
             case 'v':
                 printf("Rocaloid GenRUDB version " Version "\n");
