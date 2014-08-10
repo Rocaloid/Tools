@@ -89,6 +89,27 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     printf("Average fundamental frequency: %fHz\n",
         (Real)Sum / ((Real)F0Iter.F0List.Y_Index + 1.0));
     
+    //Noise Analysis
+    Wave ConWave;
+    RCall(Wave, Ctor)(& ConWave);
+    SinusoidIterlyzer SAna;
+    RCall(SinusoidIterlyzer, Ctor)(& SAna);
+    SAna.GenPhase = 1;
+    SAna.LeftBound = VOT + 1500;
+    
+    RCall(SinusoidIterlyzer, SetHopSize)(& SAna, 128);
+    RCall(SinusoidIterlyzer, SetWave)(& SAna, Sorc);
+    RCall(SinusoidIterlyzer, SetPosition)(& SAna, SAna.LeftBound);
+    RCall(SinusoidIterlyzer, SetUpperFreq)(& SAna, 9000);
+    RCall(SinusoidIterlyzer, SetPitch)(& SAna, & F0Iter.F0List);
+    
+    RCall(SinusoidIterlyzer, PrevTo)(& SAna, 0);
+    RCall(SinusoidIterlyzer, IterNextTo)(& SAna, SAna.LeftBound + 3000);
+    
+    RCall(CSVP_NoiseTurbFromSinuList, Real)(& ConWave, Sorc,
+        & SAna.PulseList, & SAna.SinuList, & SAna.PhseList);
+    RCall(SinusoidIterlyzer, Dtor)(& SAna);
+    
     //HNM Analysis
     HNMIterlyzer HAna;
     if(VerboseFlag)
@@ -126,7 +147,14 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     Dest -> HopSize = HopSize;
     Dest -> NoizSize = WinSize / 16;
     
-    Array_Push(int, Dest -> PulseList, 0);
+    #undef Wave
+    Dest -> Wave = realloc(Dest -> Wave, ConWave.Size * 4);
+    for(i = 0; i < ConWave.Size; i ++)
+        Dest -> Wave[i] = ConWave.Data[i];
+    Dest -> WaveSize = ConWave.Size;
+    Dest -> Samprate = Sorc -> SampleRate;
+    #define Wave CDSP2_Wave_Float
+    
     Array_ObjResize(RUCE_DB_Frame, Dest -> FrameList,
         HAna.HNMList.Frames_Index + 1);
     Dest -> FrameList_Index = HAna.HNMList.Frames_Index;
@@ -245,7 +273,7 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     
     Array_Dtor(Real, LocalDiff);
     Array_Dtor(Real, AvgDiff);
-    RDelete(& F0Iter, & HAna, & ContourList);
+    RDelete(& F0Iter, & HAna, & ContourList, & ConWave);
     return FRet;
 }
 

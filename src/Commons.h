@@ -5,6 +5,7 @@
 #define F0Iterlyzer CSVP_F0Iterlyzer_Float
 #define PSOLAIterlyzer CSVP_PSOLAIterlyzer_Float
 #define HNMIterlyzer CSVP_HNMIterlyzer_Float
+#define SinusoidIterlyzer CSVP_SinusoidIterlyzer_Float
 #define HNMFrame CSVP_HNMFrame_Float
 #define DataFrame CDSP2_DataFrame_Float
 #define List_HNMContour CSVP_List_HNMContour_Float
