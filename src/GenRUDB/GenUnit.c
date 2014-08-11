@@ -251,8 +251,9 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
         }
     
     Real InvarMin = Min + InvarThreshold;
-    Dest -> InvarLeft  = HAna.PulseList.Frames[0];
-    Ret  -> InvarLeft  = HAna.PulseList.Frames[0];
+    Ret  -> VOT = VOT;
+    Dest -> InvarLeft  = HAna.PulseList.Frames[VOTIndex + 1];
+    Ret  -> InvarLeft  = Dest -> InvarLeft;
     Dest -> InvarRight = TopOf(HAna.PulseList.Frames);
     Ret  -> InvarRight = TopOf(HAna.PulseList.Frames);
     for(j = MinIndex; j > 0; j --)
