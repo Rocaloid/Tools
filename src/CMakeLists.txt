@@ -54,7 +54,14 @@ target_link_libraries(roto2oto m)
 aux_source_directory(./Utau2Rec U2REC_SRC_LIST)
 aux_source_directory(. U2REC_SRC_LIST)
 add_executable(utau2rec ${U2REC_SRC_LIST})
-target_link_libraries(utau2rec RUtil2)
+target_link_libraries(utau2rec RFNL)
+
+aux_source_directory(./PrecompDiff PCDIFF_SRC_LIST)
+aux_source_directory(. PCDIFF_SRC_LIST)
+add_executable(pcompdiff ${PCDIFF_SRC_LIST})
+target_link_libraries(pcompdiff CVEDSP2)
+target_link_libraries(pcompdiff RFNL)
+target_link_libraries(pcompdiff m)
 
 ADD_CUSTOM_TARGET(ManPages ALL)
 
@@ -89,7 +96,7 @@ INSTALL(
 )
 
 INSTALL(
-    TARGETS genrudb rsegment genroto wavnorm roto2oto utau2rec
+    TARGETS genrudb rsegment genroto wavnorm roto2oto utau2rec pcompdiff
     DESTINATION bin/
 )
 
