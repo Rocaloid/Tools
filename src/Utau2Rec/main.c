@@ -1,6 +1,12 @@
 ﻿#include <RUtil2.h>
 #include <stdio.h>
 
+void PrintUsage(char *argv[0])
+{
+    printf("Usage: %s Utau-Voicebank-Path [OutputFile]\n    By default, "
+           "output file is rec.txt.\n", argv[0]);   
+}
+
 int main(int argc, char *argv[])
 {
     String OutPath;
@@ -14,8 +20,7 @@ int main(int argc, char *argv[])
         String_SetChars(& OutPath, argv[2]);
     else
     {
-        printf("Usage: %s Utau-Voicebank-Path [OutputFile]\n    By default, "
-               "output file is rec.txt.\n", argv[0]);
+        PrintUsage(argv);
         String_Dtor(& OutPath);
         File_Dtor(& OutFile);
         return 1;
@@ -32,7 +37,12 @@ int main(int argc, char *argv[])
     String_Ctor(& FileName);
     String_Ctor(& Temp);
     
-    File_OpenDir(& SrcDir, & CDirPath);
+    if(File_OpenDir(& SrcDir, & CDirPath) != 1)
+    {
+        fprintf(stderr, "Error: Utau-Voicebank-Path must be a directory!\n\n");
+        PrintUsage(argv);
+        return 8;
+    }
     File_SetDirFilter(& SrcDir, & Match);
     File_SetDirFlags(& SrcDir, FILEONLY);
     while(File_ReadDir(& SrcDir, & FileName) != 1)
@@ -41,6 +51,7 @@ int main(int argc, char *argv[])
         File_Write_String(& OutFile, & Temp);
         File_Write_Chars(& OutFile, " ");
     }
+    File_Write_Chars(& OutFile, "\n");
     File_CloseDir(& SrcDir);
     
     String_Dtor(& Temp);
