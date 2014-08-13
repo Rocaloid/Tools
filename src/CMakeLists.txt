@@ -62,6 +62,14 @@ target_link_libraries(pcompdiff CVEDSP2)
 target_link_libraries(pcompdiff RFNL)
 target_link_libraries(pcompdiff m)
 
+aux_source_directory(./RUDB2Oct R2OCT_SRC_LIST)
+aux_source_directory(. R2OCT_SRC_LIST)
+add_executable(rudb2oct ${R2OCT_SRC_LIST})
+target_link_libraries(rudb2oct RUCE)
+target_link_libraries(rudb2oct CVEDSP2)
+target_link_libraries(rudb2oct RFNL)
+target_link_libraries(rudb2oct m)
+
 ADD_CUSTOM_TARGET(ManPages ALL)
 
 ADD_CUSTOM_COMMAND(
@@ -96,6 +104,7 @@ INSTALL(
 
 INSTALL(
     TARGETS genrudb rsegment genroto wavnorm roto2oto utau2rec pcompdiff
+            rudb2oct
     DESTINATION bin/
 )
 
