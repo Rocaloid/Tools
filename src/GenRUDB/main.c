@@ -12,7 +12,7 @@
 
 static void PrintUsage()
 {
-    fprintf(stderr, "Usage: genrudb [-n unitname] [-r]\n"
+    fprintf(stderr, "Usage: genrudb [-n unitname] [-r] [-q]\n"
                     "               [-u freq] [-l freq] [-m method]\n"
                     "               [-s freq] [-h hopsize] [-z size]\n"
                     "               [-c threshold] [-w window] [-t position]\n"
@@ -25,6 +25,7 @@ int main(int ArgN, char** Arg)
     CRotoFile = NULL;
     CUnitName = NULL;
     ReadOnlyFlag = 0;
+    QuitFlag = 0;
     UFundFreq = 700;
     LFundFreq = 80;
     CFundMethod = "YIN";
@@ -39,7 +40,7 @@ int main(int ArgN, char** Arg)
     VerboseFlag = 0;
     
     int c;
-    while((c = getopt(ArgN, Arg, "n:ru:l:m:s:h:z:w:t:i:Vv")) != -1)
+    while((c = getopt(ArgN, Arg, "n:rqu:l:m:s:h:z:w:t:i:Vv")) != -1)
     {
         switch(c)
         {
@@ -48,6 +49,9 @@ int main(int ArgN, char** Arg)
             break;
             case 'r':
                 ReadOnlyFlag = 1;
+            break;
+            case 'q':
+                QuitFlag = 1;
             break;
             case 'u':
                 UFundFreq = atof(optarg);
@@ -303,10 +307,18 @@ int main(int ArgN, char** Arg)
             {
                 fprintf(stderr, "[Error] Cannot load '%s'.\n",
                     String_GetChars(& DirName));
-                continue;
+                if(QuitFlag)
+                    return 1;
+                else
+                    continue;
             }
             
-            GenUnit(& Entry, & DBEntry, & InWave);
+            if(GenUnit(& Entry, & DBEntry, & InWave) != 1)
+                if(QuitFlag)
+                    return 1;
+                else
+                    continue;
+            
             RUCE_Roto_SetEntry(& InRoto, & Entry);
             
             if(VerboseFlag)

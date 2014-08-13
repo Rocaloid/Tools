@@ -1,11 +1,12 @@
 #ifndef GENRUDB_COMMON_H
 #define GENRUDB_COMMON_H
 
-#define Version "1.1.0.0"
+#define Version "1.1.0.1"
 
 char* CRotoFile;
 char* CUnitName;
 int   ReadOnlyFlag;
+int   QuitFlag;
 float UFundFreq;
 float LFundFreq;
 char* CFundMethod;

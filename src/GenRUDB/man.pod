@@ -22,6 +22,12 @@ B<-r>
 
     Default: Disabled
 
+B<-q>
+
+    Quit on errors and return 1.
+    
+    Default: Disabled
+
 =head2 Fundamental Frequency Estimation    
 
 B<-u> I<frequency>
@@ -110,7 +116,7 @@ B<-v>
 
 =head1 VERSION
 
-GenRUDB 1.1.0.0
+GenRUDB 1.1.0.1
 
 =head1 LICENSE
 
