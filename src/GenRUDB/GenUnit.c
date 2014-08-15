@@ -2,34 +2,54 @@
 #include <stdlib.h>
 #include <CVESVP.h>
 
-Real ContourDiff(HNMContour* Sorc1, HNMContour* Sorc2)
+Real SinusoidDiff(Sinusoid* Sorc1, Sinusoid* Sorc2, int HNum)
 {
-    if(Sorc1 -> Size != Sorc2 -> Size) return -1;
-    int HalfSize = Sorc1 -> Size / 2 + 1;
-    
-    int U1 = 0;
-    int U2 = 0;
     int i;
-    for(i = 0; i < HalfSize; i ++)
-        if(Sorc1 -> Hmnc[i] < -100)
-        {
-            U1 = i;
-            break;
-        }
-    for(i = 0; i < HalfSize; i ++)
-        if(Sorc2 -> Hmnc[i] < -100)
-        {
-            U2 = i;
-            break;
-        }
+    Real* Diff = RCall(RAlloc, Real)(HNum);
+    RCall(CDSP2_VSet, Real)(Diff, 0.0000001, HNum);
     
-    int U = (U1 < U2 ? U1 : U2) / 2;
-    Real* Diff = RCall(RAlloc, Real)(U);
-    RCall(CDSP2_VSub, Real)(Diff, Sorc1 -> Hmnc, Sorc2 -> Hmnc, U);
-    RCall(CDSP2_VMul, Real)(Diff, Diff, Diff, U);
-    Real Ret = RCall(CDSP2_VSum, Real)(Diff, 0, U) / (Real)U;
+    if(Sorc1 -> Ampl_Index < HNum - 1)
+        RCall(CDSP2_VCopy, Real)(Diff, Sorc1 -> Ampl,
+            Sorc1 -> Ampl_Index + 1);
+    else
+        RCall(CDSP2_VCopy, Real)(Diff, Sorc1 -> Ampl, HNum);
+    
+    for(i = 0; i < HNum; i ++)
+        Diff[i] = log(Diff[i]);
+    
+    if(Sorc2 -> Ampl_Index < HNum - 1)
+    {
+        for(i = 0; i <= Sorc2 -> Ampl_Index; i ++)
+            Diff[i] -= log(Sorc2 -> Ampl[i]);
+    }else
+    {
+        for(i = 0; i < HNum; i ++)
+            Diff[i] -= log(Sorc2 -> Ampl[i]);
+    }
+    
+    for(i = 0; i < HNum; i ++)
+        if(fabs(Diff[i]) > 10) Diff[i] = 0;
+    
+    RCall(CDSP2_VMul, Real)(Diff, Diff, Diff, HNum);
+    Real Ret = RCall(CDSP2_VSum, Real)(Diff, 0, HNum) / HNum / HNum;
     
     RFree(Diff);
+    return Ret;
+}
+
+int MaxElmtIndex(Real* Sorc, int Size)
+{
+    Real Max = Sorc[0];
+    int  Ret = 0;
+    int i;
+    
+    for(i = 0; i < Size; i ++)
+        if(Sorc[i] > Max)
+        {
+            Ret = i;
+            Max = Sorc[i];
+        }
+    
     return Ret;
 }
 
@@ -139,6 +159,9 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
         return 0;
     }
     
+    if(VerboseFlag)
+        printf("%d HNM frames generated.\n", HAna.HNMList.Frames_Index + 1);
+    
     //Filling in
     if(VerboseFlag)
     printf("Converting data structure...\n");
@@ -202,79 +225,70 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     if(VerboseFlag)
     printf("Invariant region analysis...\n");
     //Generate Invar end points
-    List_HNMContour ContourList;
-    int VOTIndex = CDSP2_List_Int_IndexAfter(& HAna.PulseList, VOT);
-    RCall(List_HNMContour, CtorSize)(& ContourList,
-        HAna.HNMList.Frames_Index + 1 - VOTIndex, WinSize);
     
-    for(i = 0; i <= ContourList.Frames_Index; i ++)
-        RCall(HNMFrame, ToContour)(& HAna.HNMList.Frames[i + VOTIndex],
-            & ContourList.Frames[i]);
+    #define DiffProcess() \
+        for(i = 3; i < DiffSize - 3; i ++) \
+        { \
+            Real s1 = LocalDiff[i - 3] + LocalDiff[i - 2] + LocalDiff[i - 1]; \
+            Real s2 = LocalDiff[i + 1] + LocalDiff[i + 2] + LocalDiff[i + 3]; \
+            JumpDiff[i] = (s1 - s2) / 4.0; \
+        } do {} while(0)
+    
+    int VOTIndex = CDSP2_List_Int_IndexAfter(& HAna.PulseList, VOT);
+    int VHalfIndex = (HAna.HNMList.Frames_Index + VOTIndex) / 2;
+    int DiffSize = HAna.HNMList.Frames_Index - VHalfIndex - 4;
+    
+    HNMFrame* EndingFrame = & HAna.HNMList.Frames
+                             [HAna.HNMList.Frames_Index - DiffSize / 10];
+    HNMFrame* MiddleFrame = & HAna.HNMList.Frames[VHalfIndex];
     
     Array_Define(Real, LocalDiff);
     Array_Ctor(Real, LocalDiff);
-    Array_Resize(Real, LocalDiff, ContourList.Frames_Index + 1);
-    Array_Define(Real, AvgDiff);
-    Array_Ctor(Real, AvgDiff);
+    Array_Define(Real, JumpDiff);
+    Array_Ctor(Real, JumpDiff);
+    Array_Resize(Real, LocalDiff, DiffSize);
+    Array_Resize(Real, JumpDiff , DiffSize);
+    LocalDiff_Index = DiffSize - 1;
+    JumpDiff_Index  = DiffSize - 1;
     
-    LocalDiff_Index = ContourList.Frames_Index;
-    for(i = 0; i <= LocalDiff_Index; i ++) LocalDiff[i] = 0;
+    RCall(CDSP2_VSet, Real)(LocalDiff, 0, DiffSize);
+    RCall(CDSP2_VSet, Real)(JumpDiff , 0, DiffSize);
     
-    for(i = ContourList.Frames_Index * 0.02;
-        i < ContourList.Frames_Index * 0.07;
-        i ++)
+    for(i = 0; i < DiffSize; i ++)
     {
-        HNMContour* Cmp1 = & ContourList.Frames[i * 10];
-        for(j = 0; j <= LocalDiff_Index; j ++)
-        {
-            HNMContour* Cmp2 = & ContourList.Frames[j];
-            Real Diff = ContourDiff(Cmp1, Cmp2);
-            //Normalize
-            LocalDiff[j] += sigmoid(Diff) / (Real)LocalDiff_Index;
-        }
+        HNMFrame* CompareFrame = & HAna.HNMList.Frames[i + VHalfIndex];
+        LocalDiff[i] = SinusoidDiff(& EndingFrame -> Hmnc,
+                                    & CompareFrame -> Hmnc, 8);
     }
     
-    int AvgLen = WinSize / HopSize;
-    if(AvgLen > LocalDiff_Index / 8) AvgLen = LocalDiff_Index / 8;
-    Array_From(Real, AvgDiff, LocalDiff);
-    for(j = AvgLen; j < LocalDiff_Index - AvgLen; j ++)
-        AvgDiff[j] = RCall(CDSP2_VSum, Real)(LocalDiff, j - AvgLen, j + AvgLen)
-                   / AvgLen / 2.0;
+    DiffProcess();
     
-    Real Min = AvgDiff[0];
-    Real MinIndex = 0;
-    for(j = 0; j <= AvgDiff_Index; j ++)
-        if(AvgDiff[j] < Min)
-        {
-            Min = AvgDiff[j];
-            MinIndex = j;
-        }
+    int FinalIndex = MaxElmtIndex(JumpDiff, DiffSize);
     
-    Real InvarMin = Min + InvarThreshold;
-    Ret  -> VOT = VOT;
-    Dest -> InvarLeft  = HAna.PulseList.Frames[VOTIndex + 1];
-    Ret  -> InvarLeft  = Dest -> InvarLeft;
-    Dest -> InvarRight = TopOf(HAna.PulseList.Frames);
-    Ret  -> InvarRight = TopOf(HAna.PulseList.Frames);
-    for(j = MinIndex; j > 0; j --)
-        if(AvgDiff[j] > InvarMin)
-        {
-            Dest -> InvarLeft = HAna.PulseList.Frames[j + VOTIndex];
-            Ret  -> InvarLeft = Dest -> InvarLeft;
-            break;
-        }
+    DiffSize = VHalfIndex - VOTIndex + 1;
+    Array_Resize(Real, LocalDiff, DiffSize);
+    Array_Resize(Real, JumpDiff , DiffSize);
+    RCall(CDSP2_VSet, Real)(LocalDiff, 0, DiffSize);
+    RCall(CDSP2_VSet, Real)(JumpDiff , 0, DiffSize);
     
-    for(j = MinIndex; j <= LocalDiff_Index; j ++)
-        if(AvgDiff[j] > InvarMin)
-        {
-            Dest -> InvarRight = HAna.PulseList.Frames[j + VOTIndex];
-            Ret  -> InvarRight = Dest -> InvarRight;
-            break;
-        }
+    for(i = 0; i < DiffSize; i ++)
+    {
+        HNMFrame* CompareFrame = & HAna.HNMList.Frames[i + VOTIndex];
+        LocalDiff[i] = SinusoidDiff(& MiddleFrame -> Hmnc,
+                                    & CompareFrame -> Hmnc, 8);
+    }
+    
+    DiffProcess();
+    
+    int LeftIndex = MaxElmtIndex(JumpDiff, DiffSize);
+    
+    Ret -> VOT = VOT;
+    Ret -> InvarLeft  = HAna.PulseList.Frames[VOTIndex   + LeftIndex];
+    Ret -> InvarRight = HAna.PulseList.Frames[VHalfIndex + FinalIndex];
     
     Array_Dtor(Real, LocalDiff);
-    Array_Dtor(Real, AvgDiff);
-    RDelete(& F0Iter, & HAna, & ContourList, & ConWave);
+    Array_Dtor(Real, JumpDiff);
+    RDelete(& F0Iter, & HAna, & ConWave);
     return FRet;
 }
 
