@@ -3,7 +3,7 @@
 
 void PrintUsage(char *argv[0])
 {
-    printf("Usage: %s Utau-Voicebank-Path [OutputFile]\n    By default, "
+    printf("Usage: %s utau-voicebank-path [OutputFile]\n    By default, "
            "output file is rec.txt.\n", argv[0]);   
 }
 
@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
     
     if(File_OpenDir(& SrcDir, & CDirPath) != 1)
     {
-        fprintf(stderr, "Error: Utau-Voicebank-Path must be a directory!\n\n");
+        fprintf(stderr, "Error: utau-voicebank-path must be a directory!\n\n");
         PrintUsage(argv);
         return 8;
     }
@@ -65,3 +65,4 @@ int main(int argc, char *argv[])
     String_Dtor(& OutPath);
     File_Dtor(& OutFile);
 }
+

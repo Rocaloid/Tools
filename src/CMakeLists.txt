@@ -70,6 +70,14 @@ target_link_libraries(rudb2oct CVEDSP2)
 target_link_libraries(rudb2oct RFNL)
 target_link_libraries(rudb2oct m)
 
+aux_source_directory(./Context2Oct C2OCT_SRC_LIST)
+aux_source_directory(. C2OCT_SRC_LIST)
+add_executable(con2oct ${C2OCT_SRC_LIST})
+target_link_libraries(con2oct RUCE)
+target_link_libraries(con2oct CVEDSP2)
+target_link_libraries(con2oct RFNL)
+target_link_libraries(con2oct m)
+
 ADD_CUSTOM_TARGET(ManPages ALL)
 
 ADD_CUSTOM_COMMAND(
@@ -104,7 +112,7 @@ INSTALL(
 
 INSTALL(
     TARGETS genrudb rsegment genroto wavnorm roto2oto utau2rec pcompdiff
-            rudb2oct
+            rudb2oct con2oct
     DESTINATION bin/
 )
 
