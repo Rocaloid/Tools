@@ -166,7 +166,7 @@ int main(int ArgN, char** Arg)
         int EIndex, j;
         EIndex = ETrack_Index;
         for(j = 0; j <= ETrack_Index; j ++)
-            if(ETrack[j].Time > Principle)
+            if(ETrack[j].Time > Principle + 0.01)
             {
                 EIndex = j - 1;
                 break;

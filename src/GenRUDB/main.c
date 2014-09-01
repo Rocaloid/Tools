@@ -240,9 +240,9 @@ int main(int ArgN, char** Arg)
             { \
                 printf("Roto configuration for '%s':\n", \
                     String_GetChars(& Entry.Name)); \
-                printf("  VOT = %d\n", Entry.VOT); \
-                printf("  InvarLeft = %d\n", Entry.InvarLeft); \
-                printf("  InvarRight = %d\n", Entry.InvarRight); \
+                printf("  VOT = %f\n", Entry.VOT); \
+                printf("  InvarLeft = %f\n", Entry.InvarLeft); \
+                printf("  InvarRight = %f\n", Entry.InvarRight); \
             }
     
     Real* Window = RCall(RAlloc, Real)(WinSize);

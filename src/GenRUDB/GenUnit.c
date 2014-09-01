@@ -282,9 +282,11 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     
     int LeftIndex = MaxElmtIndex(JumpDiff, DiffSize);
     
-    Ret -> VOT = VOT;
+    Ret -> VOT = (Real)VOT / Sorc -> SampleRate * 1000.0;
     Ret -> InvarLeft  = HAna.PulseList.Frames[VOTIndex   + LeftIndex];
     Ret -> InvarRight = HAna.PulseList.Frames[VHalfIndex + FinalIndex];
+    Ret -> InvarLeft  *= 1000.0 / Sorc -> SampleRate;
+    Ret -> InvarRight *= 1000.0 / Sorc -> SampleRate;
     
     Array_Dtor(Real, LocalDiff);
     Array_Dtor(Real, JumpDiff);

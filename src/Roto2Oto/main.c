@@ -5,7 +5,7 @@
 #include <RUCE.h>
 #include "../Commons.h"
 
-#define Version "1.0.0.2"
+#define Version "1.1.0.0"
 
 int   VerboseFlag = 0;
 char* CRotoFile = NULL;
@@ -117,16 +117,15 @@ int main(int ArgN, char** Arg)
             Mapping, LeftBound, LeftInvar - LeftBound, Size - RightBound,
                 VOT - LeftBound, Overlap
         */
-        #define Smpl2ms(x) (Real)((x) * 1000.0 / InWave.SampleRate)
         String_From(& LineBuff, & Entry.Name);
         String_JoinChars(& LineBuff, ".wav=,0,");
-        CStrFloat(& WordBuff, Smpl2ms(Entry.InvarLeft));
+        CStrFloat(& WordBuff, Entry.InvarLeft);
         String_Join(& LineBuff, & WordBuff);
         String_JoinChars(& LineBuff, ",0,");
-        CStrFloat(& WordBuff, Smpl2ms(Entry.VOT));
+        CStrFloat(& WordBuff, Entry.VOT);
         String_Join(& LineBuff, & WordBuff);
         String_JoinChars(& LineBuff, ",");
-        CStrFloat(& WordBuff, Smpl2ms(Entry.VOT) / 3);
+        CStrFloat(& WordBuff, Entry.VOT / 3);
         String_Join(& LineBuff, & WordBuff);
         File_WriteLine(& OtoFile, & LineBuff);
         
