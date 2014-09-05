@@ -1,7 +1,7 @@
 #ifndef GENRUDB_COMMON_H
 #define GENRUDB_COMMON_H
 
-#define Version "1.2.0.0"
+#define Version "1.2.1.0"
 
 char* CRotoFile;
 char* CUnitName;
@@ -29,11 +29,7 @@ enum
     Blackman
 } EWindow;
 
-enum
-{
-    YIN = 0,
-    SpecStep = 1
-} EF0;
+int EF0;
 
 #endif
 

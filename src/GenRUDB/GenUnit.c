@@ -75,10 +75,7 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     F0Iter.Option.Threshold = 0.01;
     F0Iter.Option.YIN.W = 300;
     F0Iter.Option.YIN.Threshold = 0.2;
-    if(EF0 == YIN)
-        F0Iter.Option.Method = CSVP_F0_YIN;
-    else
-        F0Iter.Option.Method = CSVP_F0_SpecStep;
+    F0Iter.Option.Method = EF0;
     
     int TempSize = WSize / 2 + 10000 > WSize ? WSize : WSize / 2 + 10000;
     RCall(F0Iterlyzer, SetHopSize)(& F0Iter, 256);
@@ -106,12 +103,15 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
         F0Iter.F0List.Y_Index + 1);
     
     if(VerboseFlag)
-    printf("Average fundamental frequency: %fHz\n",
-        (Real)Sum / ((Real)F0Iter.F0List.Y_Index + 1.0));
+    printf("Average fundamental frequency: %fHz (%s)\n",
+        (Real)Sum / ((Real)F0Iter.F0List.Y_Index + 1.0),
+        EF0 == CSVP_F0_YIN ? "YIN" : "SPECSTEP");
     
     //Noise Analysis
-    Wave ConWave;
-    RCall(Wave, Ctor)(& ConWave);
+    if(VerboseFlag)
+        printf("Noise analysis...\n");
+    Wave ConWave, VowWave;
+    RNew(Wave, & ConWave, & VowWave);
     SinusoidIterlyzer SAna;
     RCall(SinusoidIterlyzer, Ctor)(& SAna);
     SAna.GenPhase = 1;
@@ -126,14 +126,31 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     RCall(SinusoidIterlyzer, PrevTo)(& SAna, 0);
     RCall(SinusoidIterlyzer, IterNextTo)(& SAna, SAna.LeftBound + 3000);
     
-    RCall(CSVP_NoiseTurbFromSinuList, Real)(& ConWave, Sorc,
+    RCall(CSVP_SinusoidalFromSinuList, Real)(& VowWave,
         & SAna.PulseList, & SAna.SinuList, & SAna.PhseList);
+    
+    int i;
+    for(i = 0; i <= VowWave.Size; i ++)
+        if(VowWave.Data[i] > 0.015)
+            break;
+    int  VOTSelDest = i + 1500;
+    Real VOTSelMax = RCall(CDSP2_VMaxElmt, Real)(VowWave.Data, i, VOTSelDest);
+    for(; i < VOTSelDest; i ++)
+        if(VowWave.Data[i] > VOTSelMax / 2)
+            break;
+    VOT = i;
+    if(VerboseFlag)
+        printf("Refined VOT estimation: %d\n", VOT);
+    
+    RCall(CSVP_NoiseTurbFromWave, Real)(& ConWave, Sorc, & VowWave);
+    
     RCall(SinusoidIterlyzer, Dtor)(& SAna);
+    RDelete(& VowWave);
     
     //HNM Analysis
     HNMIterlyzer HAna;
     if(VerboseFlag)
-    printf("HNM analysis...\n");
+        printf("HNM analysis...\n");
     RCall(HNMIterlyzer, CtorSize)(& HAna, WinSize);
     RCall(HNMIterlyzer, SetWave)(& HAna, Sorc);
     RCall(HNMIterlyzer, SetHopSize)(& HAna, HopSize);
@@ -165,7 +182,7 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     //Filling in
     if(VerboseFlag)
     printf("Converting data structure...\n");
-    int i, j;
+    int j;
     
     Dest -> HopSize = HopSize;
     Dest -> NoizSize = WinSize / 16;
