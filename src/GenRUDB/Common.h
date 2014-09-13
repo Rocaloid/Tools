@@ -1,11 +1,9 @@
 #ifndef GENRUDB_COMMON_H
 #define GENRUDB_COMMON_H
 
-#define Version "1.2.1.0"
+#define Version "1.3.0.0"
 
-char* CRotoFile;
-char* CUnitName;
-int   ReadOnlyFlag;
+char* CWavFile;
 int   QuitFlag;
 float UFundFreq;
 float LFundFreq;
@@ -20,7 +18,7 @@ int   VOTFlag;
 float InvarThreshold;
 int   VerboseFlag;
 
-String FundMethod, UnitName, WindowName;
+String FundMethod, UnitName, WavName, WindowName;
 
 enum
 {

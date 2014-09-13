@@ -53,17 +53,11 @@ int MaxElmtIndex(Real* Sorc, int Size)
     return Ret;
 }
 
-Real sigmoid(Real x)
-{
-    return 1.0 / (1.0 + exp(- x));
-}
-
-int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
+int GenUnit(RUCE_DB_Entry* Dest, Wave* Sorc)
 {
     int FRet = 1;
     int WSize = Sorc -> Size;
     
-    printf("Generating unit \'%s\'...\n", String_GetChars(& Ret -> Name));
     RCall(Wave, Resize)(Sorc, Sorc -> Size + WinSize * 2);
     
     //F0 estimation
@@ -101,10 +95,11 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     
     Real Sum = RCall(CDSP2_VSum, Real)(F0Iter.F0List.Y, 0,
         F0Iter.F0List.Y_Index + 1);
+    Real AvgF0 = (Real)Sum / ((Real)F0Iter.F0List.Y_Index + 1.0);
     
     if(VerboseFlag)
     printf("Average fundamental frequency: %fHz (%s)\n",
-        (Real)Sum / ((Real)F0Iter.F0List.Y_Index + 1.0),
+        AvgF0,
         EF0 == CSVP_F0_YIN ? "YIN" : "SPECSTEP");
     
     //Noise Analysis
@@ -116,6 +111,8 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     RCall(SinusoidIterlyzer, Ctor)(& SAna);
     SAna.GenPhase = 1;
     SAna.LeftBound = VOT + 1500;
+    SAna.DThreshold = AvgF0 / 3.0;
+    SAna.DFThreshold = AvgF0 / 5.0;
     
     RCall(SinusoidIterlyzer, SetHopSize)(& SAna, 128);
     RCall(SinusoidIterlyzer, SetWave)(& SAna, Sorc);
@@ -159,6 +156,8 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     RCall(HNMIterlyzer, SetPitch)(& HAna, & F0Iter.F0List);
     HAna.GenPhase = 1;
     HAna.LeftBound = VOT + 1500;
+    HAna.DThreshold = AvgF0 / 3.0;
+    HAna.DFThreshold = AvgF0 / 5.0;
     if(VerboseFlag)
         printf("Backward HNM analysis...\n");
     if(! RCall(HNMIterlyzer, PrevTo)(& HAna, 0))
@@ -299,11 +298,11 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     
     int LeftIndex = MaxElmtIndex(JumpDiff, DiffSize);
     
-    Ret -> VOT = (Real)VOT / Sorc -> SampleRate * 1000.0;
-    Ret -> InvarLeft  = HAna.PulseList.Frames[VOTIndex   + LeftIndex];
-    Ret -> InvarRight = HAna.PulseList.Frames[VHalfIndex + FinalIndex];
-    Ret -> InvarLeft  *= 1000.0 / Sorc -> SampleRate;
-    Ret -> InvarRight *= 1000.0 / Sorc -> SampleRate;
+    Dest -> VOT = (Real)VOT / Sorc -> SampleRate;
+    Dest -> InvarLeft  = HAna.PulseList.Frames[VOTIndex   + LeftIndex];
+    Dest -> InvarRight = HAna.PulseList.Frames[VHalfIndex + FinalIndex];
+    Dest -> InvarLeft  /= Sorc -> SampleRate;
+    Dest -> InvarRight /= Sorc -> SampleRate;
     
     Array_Dtor(Real, LocalDiff);
     Array_Dtor(Real, JumpDiff);

@@ -18,12 +18,6 @@ target_link_libraries(rsegment CVEDSP2)
 target_link_libraries(rsegment RFNL)
 target_link_libraries(rsegment m)
 
-aux_source_directory(./GenRoto GROTO_SRC_LIST)
-add_executable(genroto ${GROTO_SRC_LIST})
-target_link_libraries(genroto RUCE)
-target_link_libraries(genroto RFNL)
-target_link_libraries(genroto m)
-
 aux_source_directory(./GenRUDB GRUDB_SRC_LIST)
 aux_source_directory(. GRUDB_SRC_LIST)
 add_executable(genrudb ${GRUDB_SRC_LIST})
@@ -42,13 +36,13 @@ target_link_libraries(wavnorm CVEDSP2)
 target_link_libraries(wavnorm RFNL)
 target_link_libraries(wavnorm m)
 
-aux_source_directory(./Roto2Oto R2OTO_SRC_LIST)
-aux_source_directory(. R2OTO_SRC_LIST)
-add_executable(roto2oto ${R2OTO_SRC_LIST})
-target_link_libraries(roto2oto RUCE)
-target_link_libraries(roto2oto CVEDSP2)
-target_link_libraries(roto2oto RFNL)
-target_link_libraries(roto2oto m)
+#aux_source_directory(./Roto2Oto R2OTO_SRC_LIST)
+#aux_source_directory(. R2OTO_SRC_LIST)
+#add_executable(roto2oto ${R2OTO_SRC_LIST})
+#target_link_libraries(roto2oto RUCE)
+#target_link_libraries(roto2oto CVEDSP2)
+#target_link_libraries(roto2oto RFNL)
+#target_link_libraries(roto2oto m)
 
 aux_source_directory(./Utau2Rec U2REC_SRC_LIST)
 aux_source_directory(. U2REC_SRC_LIST)
@@ -111,7 +105,7 @@ INSTALL(
 )
 
 INSTALL(
-    TARGETS genrudb rsegment genroto wavnorm roto2oto utau2rec pcompdiff
+    TARGETS genrudb rsegment wavnorm utau2rec pcompdiff
             rudb2oct con2oct
     DESTINATION bin/
 )
