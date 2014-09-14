@@ -27,6 +27,15 @@ target_link_libraries(genrudb CVEDSP2)
 target_link_libraries(genrudb RFNL)
 target_link_libraries(genrudb m)
 
+aux_source_directory(./ProbeRUDB PRUDB_SRC_LIST)
+aux_source_directory(. PRUDB_SRC_LIST)
+add_executable(proberudb ${PRUDB_SRC_LIST})
+target_link_libraries(proberudb RUCE)
+target_link_libraries(proberudb CVESVP)
+target_link_libraries(proberudb CVEDSP2)
+target_link_libraries(proberudb RFNL)
+target_link_libraries(proberudb m)
+
 aux_source_directory(./WavNorm WNORM_SRC_LIST)
 aux_source_directory(. WNORM_SRC_LIST)
 add_executable(wavnorm ${WNORM_SRC_LIST})
@@ -35,14 +44,6 @@ target_link_libraries(wavnorm CVESVP)
 target_link_libraries(wavnorm CVEDSP2)
 target_link_libraries(wavnorm RFNL)
 target_link_libraries(wavnorm m)
-
-#aux_source_directory(./Roto2Oto R2OTO_SRC_LIST)
-#aux_source_directory(. R2OTO_SRC_LIST)
-#add_executable(roto2oto ${R2OTO_SRC_LIST})
-#target_link_libraries(roto2oto RUCE)
-#target_link_libraries(roto2oto CVEDSP2)
-#target_link_libraries(roto2oto RFNL)
-#target_link_libraries(roto2oto m)
 
 aux_source_directory(./Utau2Rec U2REC_SRC_LIST)
 aux_source_directory(. U2REC_SRC_LIST)
@@ -82,30 +83,24 @@ ADD_CUSTOM_COMMAND(
     COMMAND pod2man ARGS -n WavNorm --center='Rocaloid Toolchain' -s 1
         -r WavNorm ${CMAKE_CURRENT_SOURCE_DIR}/WavNorm/man.pod
         ${CMAKE_CURRENT_BINARY_DIR}/wavnorm.1
-    COMMAND pod2man ARGS -n WavNorm --center='Rocaloid Toolchain' -s 1
-        -r Roto2Oto ${CMAKE_CURRENT_SOURCE_DIR}/Roto2Oto/man.pod
-        ${CMAKE_CURRENT_BINARY_DIR}/roto2oto.1
     OUTPUTS ${CMAKE_CURRENT_BINARY_DIR}/genrudb.1
             ${CMAKE_CURRENT_BINARY_DIR}/wavnorm.1
-            ${CMAKE_CURRENT_BINARY_DIR}/roto2oto.1
 )
 
 ADD_CUSTOM_COMMAND(
     TARGET ManPages
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/genrudb.1
             ${CMAKE_CURRENT_BINARY_DIR}/wavnorm.1
-            ${CMAKE_CURRENT_BINARY_DIR}/roto2oto.1
 )
 
 INSTALL(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/genrudb.1
           ${CMAKE_CURRENT_BINARY_DIR}/wavnorm.1
-          ${CMAKE_CURRENT_BINARY_DIR}/roto2oto.1
     DESTINATION share/man/man1
 )
 
 INSTALL(
-    TARGETS genrudb rsegment wavnorm utau2rec pcompdiff
+    TARGETS genrudb proberudb rsegment wavnorm utau2rec pcompdiff
             rudb2oct con2oct
     DESTINATION bin/
 )

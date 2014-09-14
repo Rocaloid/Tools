@@ -147,8 +147,8 @@ int main(int ArgN, char** Arg)
     
     CInPath = Arg[optind];
     
-    String InPath, DirPath, RotoPath, BaseName, UnitName;
-    RNew(String, & InPath, & DirPath, & RotoPath, & BaseName, & UnitName);
+    String InPath, DirPath, BaseName, UnitName;
+    RNew(String, & InPath, & DirPath, & BaseName, & UnitName);
     String_SetChars(& InPath, CInPath);
     String_FromChars(Dot, ".");
     
@@ -159,10 +159,8 @@ int main(int ArgN, char** Arg)
     DirFromFilePath(& DirPath, & InPath);
     int DotPos = String_InStr(& BaseName, & Dot);
     Left(& UnitName, & BaseName, DotPos);
-    String_From(& RotoPath, & DirPath);
-    String_JoinChars(& RotoPath, "/Roto.json");
     
-    if(RUCE_DB_LoadEntry(& Entry, & UnitName, & DirPath, & RotoPath) != 1)
+    if(RUCE_DB_LoadEntry(& Entry, & UnitName, & DirPath) != 1)
     {
         fprintf(stderr, "[Error] Cannot open '%s'.\n", CInPath);
         return 1;
@@ -263,7 +261,7 @@ int main(int ArgN, char** Arg)
     Array_ObjDtor(RUCE_DB_Frame, InterpList);
     Array_Dtor(RUCE_DB_Frame, InterpList);
     
-    RDelete(& InPath, & DirPath, & RotoPath, & Entry, & BaseName, & UnitName,
+    RDelete(& InPath, & DirPath, & Entry, & BaseName, & UnitName,
             & Dot);
     return 0;
 }
