@@ -36,6 +36,15 @@ target_link_libraries(proberudb CVEDSP2)
 target_link_libraries(proberudb RFNL)
 target_link_libraries(proberudb m)
 
+aux_source_directory(./EditRUDB ERUDB_SRC_LIST)
+aux_source_directory(. ERUDB_SRC_LIST)
+add_executable(editrudb ${ERUDB_SRC_LIST})
+target_link_libraries(editrudb RUCE)
+target_link_libraries(editrudb CVESVP)
+target_link_libraries(editrudb CVEDSP2)
+target_link_libraries(editrudb RFNL)
+target_link_libraries(editrudb m)
+
 aux_source_directory(./WavNorm WNORM_SRC_LIST)
 aux_source_directory(. WNORM_SRC_LIST)
 add_executable(wavnorm ${WNORM_SRC_LIST})
@@ -100,7 +109,7 @@ INSTALL(
 )
 
 INSTALL(
-    TARGETS genrudb proberudb rsegment wavnorm utau2rec pcompdiff
+    TARGETS genrudb editrudb proberudb rsegment wavnorm utau2rec pcompdiff
             rudb2oct con2oct
     DESTINATION bin/
 )

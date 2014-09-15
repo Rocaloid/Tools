@@ -33,31 +33,6 @@ static int MaxSizeFromEntry(RUCE_DB_Entry* Sorc)
     return MSize + 1;
 }
 
-#define max(a, b) ((a) > (b) ? (a) : (b))
-static void InterpFetchDBFrame(RUCE_DB_Frame* Dest, RUCE_DB_Entry* Sorc,
-    int LIndex, Real Ratio, int MaxSize)
-{
-    RUCE_DB_Frame* L, *H;
-    L = & Sorc -> FrameList[LIndex];
-    H = & Sorc -> FrameList[LIndex + 1 > Sorc -> FrameList_Index ?
-                                         Sorc -> FrameList_Index : LIndex + 1];
-    
-    int LSize = L -> Freq_Index + 1;
-    int HSize = H -> Freq_Index + 1;
-    
-    Array_Resize(float, Dest -> Freq, MaxSize);
-    Array_Resize(float, Dest -> Ampl, MaxSize);
-    CDSP2_VSet_Float(Dest -> Freq, 0, MaxSize);
-    CDSP2_VSet_Float(Dest -> Ampl, 0, MaxSize);
-    
-    CDSP2_VCMul_Float(Dest -> Freq, L -> Freq, 1.0 - Ratio, LSize);
-    CDSP2_VCMul_Float(Dest -> Ampl, L -> Ampl, 1.0 - Ratio, LSize);
-    CDSP2_VFCMA_Float(Dest -> Freq, H -> Freq, Ratio      , HSize);
-    CDSP2_VFCMA_Float(Dest -> Ampl, H -> Ampl, Ratio      , HSize);
-    
-    Dest -> Position = (1.0 - Ratio) * L -> Position + Ratio * H -> Position;
-}
-
 int main(int ArgN, char** Arg)
 {
     GenOto = 0;
@@ -92,8 +67,8 @@ int main(int ArgN, char** Arg)
         
     CInPath = Arg[optind];
     
-    String InPath, DirPath, BaseName, UnitName;
-    RNew(String, & InPath, & DirPath, & BaseName, & UnitName);
+    String InPath, BaseName, UnitName, RUDBName;
+    RNew(String, & InPath, & BaseName, & UnitName, & RUDBName);
     String_SetChars(& InPath, CInPath);
     String_FromChars(Dot, ".");
     
@@ -101,11 +76,12 @@ int main(int ArgN, char** Arg)
     RUCE_DB_Entry_Ctor(& Entry);
     
     BaseFromFilePath(& BaseName, & InPath);
-    DirFromFilePath(& DirPath, & InPath);
     int DotPos = String_InStrRev(& BaseName, & Dot);
     Left(& UnitName, & BaseName, DotPos);
+    String_From(& RUDBName, & UnitName);
+    String_JoinChars(& RUDBName, ".rudb");
     
-    if(RUCE_DB_LoadEntry(& Entry, & UnitName, & DirPath) != 1)
+    if(RUCE_RUDB_Load(& Entry, & RUDBName) != 1)
     {
         fprintf(stderr, "[Error] Cannot open '%s'.\n", CInPath);
         return 1;
@@ -126,7 +102,7 @@ int main(int ArgN, char** Arg)
             Entry.InvarLeft * 1000.0, Entry.VOT * 1000.0, Entry.VOT * 333.3);
     }
     
-    RDelete(& InPath, & DirPath, & Entry, & BaseName, & UnitName,
+    RDelete(& InPath, & Entry, & BaseName, & UnitName, & RUDBName,
             & Dot);
     return 0;
 }
