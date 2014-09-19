@@ -5,11 +5,12 @@
 #include <RUCE.h>
 #include "../Commons.h"
 
-#define Version "0.1.0.0"
+#define Version "0.1.1.0"
 
 /*
-    editrudb param rudbfile [-t VOT] [-r InvarRight] [-l InvarLeft]
+    editrudb param rudbfile [-t VOT] [-s SOT] [-r InvarRight] [-l InvarLeft]
     editrudb setnoise rudbfile wavfile
+    editrudb notchnoise rudbfile [-s SOT] [-r radius] [-h central height]
     editrudb mix rudbfile rudbfile(source) [-a positionA] [-b positionB]
              [-r radius]
 */
@@ -21,14 +22,17 @@ static void PrintUsage()
 #define DO_PARAM        0
 #define DO_SETNOISE     1
 #define DO_MIX          2
+#define DO_NOTCHNOISE   3
 
 static int  Param_Operation;
-static int  Set_t, Set_r, Set_l, Set_a, Set_b;
+static int  Set_t, Set_s, Set_r, Set_l, Set_a, Set_b, Set_h;
 static Real Param_t;
+static Real Param_s;
 static Real Param_r;
 static Real Param_l;
 static Real Param_a;
 static Real Param_b;
+static Real Param_h;
 
 static String RUDBPath;
 static String WavPath;
@@ -82,7 +86,7 @@ int main(int ArgN, char** Arg)
 {
     RNew(String, & RUDBPath, & WavPath, & RUDBPath2);
     
-    Set_t = Set_r = Set_l = Set_a = Set_b = 0;
+    Set_t = Set_s = Set_r = Set_l = Set_a = Set_b = Set_h = 0;
     int c;
     if(ArgN < 2)
     {
@@ -97,6 +101,9 @@ int main(int ArgN, char** Arg)
     }else if(! strcmp(Arg[1], "setnoise"))
     {
         Param_Operation = DO_SETNOISE;
+    }else if(! strcmp(Arg[1], "notchnoise"))
+    {
+        Param_Operation = DO_NOTCHNOISE;
     }else if(! strcmp(Arg[1], "mix"))
     {
         Param_Operation = DO_MIX;
@@ -110,9 +117,10 @@ int main(int ArgN, char** Arg)
         return 1;
     }
     
-    char* OptFilter = Param_Operation == DO_PARAM    ? "t:r:l:v" :
-                      Param_Operation == DO_SETNOISE ? "v"       :
-                      Param_Operation == DO_MIX      ? "a:b:r:v" : "v";
+    char* OptFilter = Param_Operation == DO_PARAM      ? "t:r:l:v" :
+                      Param_Operation == DO_SETNOISE   ? "v"       :
+                      Param_Operation == DO_NOTCHNOISE ? "s:r:h:v" :
+                      Param_Operation == DO_MIX        ? "a:b:r:v" : "v";
     while((c = getopt(ArgN, Arg, OptFilter)) != -1)
     {
         if(c == 'v')
@@ -128,6 +136,9 @@ int main(int ArgN, char** Arg)
                 Param_t = atof(optarg);
                 Set_t   = 1;
             break;
+            case 's':
+                Param_s = atof(optarg);
+                Set_s   = 1;
             case 'r':
                 Param_r = atof(optarg);
                 Set_r   = 1;
@@ -143,9 +154,32 @@ int main(int ArgN, char** Arg)
                 abort();
         }
         
+        
         if(Param_Operation == DO_SETNOISE)
         switch(c)
         {
+            case '?':
+                PrintUsage();
+                return 1;
+            default:
+                abort();
+        }
+        
+        if(Param_Operation == DO_NOTCHNOISE)
+        switch(c)
+        {
+            case 's':
+                Param_s = atof(optarg);
+                Set_s   = 1;
+            break;
+            case 'r':
+                Param_r = atof(optarg);
+                Set_r   = 1;
+            break;
+            case 'h':
+                Param_h = atof(optarg);
+                Set_h   = 1;
+            break;
             case '?':
                 PrintUsage();
                 return 1;
@@ -176,9 +210,10 @@ int main(int ArgN, char** Arg)
         }
     }
     
-    int NArgReq = Param_Operation == DO_PARAM    ? 2 :
-                  Param_Operation == DO_SETNOISE ? 3 :
-                  Param_Operation == DO_MIX      ? 3 : 0;
+    int NArgReq = Param_Operation == DO_PARAM      ? 2 :
+                  Param_Operation == DO_SETNOISE   ? 3 :
+                  Param_Operation == DO_NOTCHNOISE ? 2 :
+                  Param_Operation == DO_MIX        ? 3 : 0;
     if(optind > ArgN - NArgReq)
     {
         fprintf(stderr, "[Error] Missing argument.\n");
@@ -193,6 +228,8 @@ int main(int ArgN, char** Arg)
     String_SetChars(& RUDBPath, Arg[optind + 1]);
     if(Param_Operation == DO_SETNOISE)
         String_SetChars(& WavPath, Arg[optind + 2]);
+    if(Param_Operation == DO_NOTCHNOISE)
+        String_SetChars(& WavPath, Arg[optind + 1]);
     if(Param_Operation == DO_MIX)
         String_SetChars(& RUDBPath2, Arg[optind + 2]);
     
@@ -210,10 +247,43 @@ int main(int ArgN, char** Arg)
     {
         if(Set_t)
             Entry.VOT = Param_t;
+        if(Set_s)
+            Entry.VOT = Param_s;
         if(Set_r)
             Entry.InvarRight = Param_r;
         if(Set_l)
             Entry.InvarLeft  = Param_l;
+    }
+    
+    if(Param_Operation == DO_NOTCHNOISE)
+    {
+        float SOT, Radius, Height;
+        if(Set_s)
+            SOT = Param_s;
+        else
+            SOT = Entry.SOT;
+        if(Set_r)
+            Radius = Param_r;
+        else
+            Radius = 0.02;
+        if(Set_h)
+            Height = Param_h;
+        else
+            Height = 0.2;
+        int Center = SOT * Entry.Samprate;
+        int Length = Radius * Entry.Samprate;
+        int i = 0;
+        
+        if(Center - Length <= 0)
+            i = Length - Center;
+        #undef Wave
+        for(; i < Length; i ++)
+            Entry.Wave[i + Center - Length] *= (Real)i / Length 
+                                             * (Height - 1.0) + 1.0;
+        for(i = 0; i < Length; i ++)
+            Entry.Wave[i + Center] *= (Real)i / Length 
+                                    * (1.0 - Height) + Height;
+        #define Wave _C(CDSP2_Wave_, Real)
     }
     
     if(RUCE_RUDB_Save(& Entry, & RUDBPath) != 1)

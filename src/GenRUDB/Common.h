@@ -1,7 +1,7 @@
 #ifndef GENRUDB_COMMON_H
 #define GENRUDB_COMMON_H
 
-#define Version "1.3.0.0"
+#define Version "1.3.0.1"
 
 char* CWavFile;
 int   QuitFlag;
