@@ -5,14 +5,15 @@
 #include <RUCE.h>
 #include "../Commons.h"
 
-#define Version "0.1.0.0"
+#define Version "0.1.1.0"
 
 static void PrintUsage()
 {
-    fprintf(stderr, "Usage: proberudb [-u] rudbfile\n");
+    fprintf(stderr, "Usage: proberudb [-u] [-p] rudbfile\n");
 }
 
 static int GenOto;
+static int ShowProperties;
 
 static int FirstIndexFromEntry(RUCE_DB_Entry* Sorc, int Position)
 {
@@ -35,16 +36,19 @@ static int MaxSizeFromEntry(RUCE_DB_Entry* Sorc)
 
 int main(int ArgN, char** Arg)
 {
-    GenOto = 0;
+    GenOto = ShowProperties = 0;
     char* CInPath;
     
     int c;
-    while((c = getopt(ArgN, Arg, "u")) != -1)
+    while((c = getopt(ArgN, Arg, "up")) != -1)
     {
         switch(c)
         {
             case 'u':
                 GenOto = 1;
+            break;
+            case 'p':
+                ShowProperties = 1;
             break;
             case '?':
                 PrintUsage();
@@ -92,15 +96,29 @@ int main(int ArgN, char** Arg)
     int VOTIndex = FirstIndexFromEntry(& Entry, Entry.VOT);
     */
     
-    if(! GenOto)
+    if(! (GenOto || ShowProperties))
     {
         RUCE_DB_PrintEntry(& Entry);
-    }else
+    }else if(GenOto)
     {
         //Generate UTAU oto configuration
         printf("%s.wav=,0,%f,0,%f,%f\n", String_GetChars(& UnitName),
             Entry.InvarLeft * 1000.0, Entry.VOT * 1000.0, Entry.VOT * 333.3);
+    }else if(ShowProperties)
+    {
+        //Show RUDB properties
+        printf("VOT = %f sec.\n", Entry.VOT);
+        printf("SOT = %f sec.\n", Entry.SOT);
+        printf("InvarLeft = %f sec.\n", Entry.InvarLeft);
+        printf("InvarRight = %f sec.\n", Entry.InvarRight);
+        
+        printf("Consonant(residual) size = %d samples.\n", Entry.WaveSize);
+        printf("Sample Rate = %dHz.\n", Entry.Samprate);
+        printf("Hop size = %d samples.\n", Entry.HopSize);
+        printf("Noise size = %d samples.\n", Entry.NoizSize);
+        printf("Frame num = %d.\n", Entry.FrameList_Index + 1);
     }
+    
     
     RDelete(& InPath, & Entry, & BaseName, & UnitName, & RUDBName,
             & Dot);
