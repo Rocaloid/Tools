@@ -69,7 +69,7 @@ int main(int ArgN, char** Arg)
                 CWindow = optarg;
             break;
             case 't':
-                VOT = atoi(optarg);
+                VOT = atof(optarg);
                 VOTFlag = 1;
             break;
             case 'v':

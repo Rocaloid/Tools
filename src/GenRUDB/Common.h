@@ -13,7 +13,7 @@ float HCorrThreshold;
 int   HopSize;
 int   WinSize;
 char* CWindow;
-int   VOT;
+float   VOT;
 int   VOTFlag;
 float InvarThreshold;
 int   VerboseFlag;

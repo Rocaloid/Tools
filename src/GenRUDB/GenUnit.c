@@ -57,6 +57,7 @@ int GenUnit(RUCE_DB_Entry* Dest, Wave* Sorc)
 {
     int FRet = 1;
     int WSize = Sorc -> Size;
+    int IntVOT;
     
     RCall(Wave, Resize)(Sorc, Sorc -> Size + WinSize * 2);
     
@@ -87,11 +88,12 @@ int GenUnit(RUCE_DB_Entry* Dest, Wave* Sorc)
     RCall(CSVP_F0PostProcess, Real)(& F0Iter.F0List, 4000, 0.15,
         LFundFreq, UFundFreq);
     
+    IntVOT = VOT * Sorc -> SampleRate;
     if(! VOTFlag)
-        VOT = RCall(CSVP_VOTFromF0Match, Real)(& F0Iter.F0List, 30, 3, 1000);
+        IntVOT = RCall(CSVP_VOTFromF0Match, Real)(& F0Iter.F0List, 30, 3, 1000);
     
     if(VerboseFlag)
-    printf("VOT = %d\n", VOT);
+    printf("VOT = %f sec.\n", (Real)IntVOT / Sorc -> SampleRate);
     
     Real Sum = RCall(CDSP2_VSum, Real)(F0Iter.F0List.Y, 0,
         F0Iter.F0List.Y_Index + 1);
@@ -110,7 +112,7 @@ int GenUnit(RUCE_DB_Entry* Dest, Wave* Sorc)
     SinusoidIterlyzer SAna;
     RCall(SinusoidIterlyzer, Ctor)(& SAna);
     SAna.GenPhase = 1;
-    SAna.LeftBound = VOT + 1500;
+    SAna.LeftBound = IntVOT + 1500;
     SAna.DThreshold = AvgF0 / 3.0;
     SAna.DFThreshold = AvgF0 / 5.0;
     
@@ -135,9 +137,10 @@ int GenUnit(RUCE_DB_Entry* Dest, Wave* Sorc)
     for(; i < VOTSelDest; i ++)
         if(VowWave.Data[i] > VOTSelMax / 2)
             break;
-    VOT = i;
+    IntVOT = i;
     if(VerboseFlag)
-        printf("Refined VOT estimation: %d\n", VOT);
+        printf("Refined VOT estimation: %f sec.\n",
+            (Real)IntVOT / Sorc -> SampleRate);
     
     RCall(CSVP_NoiseTurbFromWave, Real)(& ConWave, Sorc, & VowWave);
     
@@ -151,11 +154,11 @@ int GenUnit(RUCE_DB_Entry* Dest, Wave* Sorc)
     RCall(HNMIterlyzer, CtorSize)(& HAna, WinSize);
     RCall(HNMIterlyzer, SetWave)(& HAna, Sorc);
     RCall(HNMIterlyzer, SetHopSize)(& HAna, HopSize);
-    RCall(HNMIterlyzer, SetPosition)(& HAna, VOT + 2000);
+    RCall(HNMIterlyzer, SetPosition)(& HAna, IntVOT + 2000);
     RCall(HNMIterlyzer, SetUpperFreq)(& HAna, USinuFreq);
     RCall(HNMIterlyzer, SetPitch)(& HAna, & F0Iter.F0List);
     HAna.GenPhase = 1;
-    HAna.LeftBound = VOT + 1500;
+    HAna.LeftBound = IntVOT + 1500;
     HAna.DThreshold = AvgF0 / 3.0;
     HAna.DFThreshold = AvgF0 / 5.0;
     if(VerboseFlag)
@@ -250,7 +253,7 @@ int GenUnit(RUCE_DB_Entry* Dest, Wave* Sorc)
             JumpDiff[i] = (s1 - s2) / 4.0; \
         } do {} while(0)
     
-    int VOTIndex = CDSP2_List_Int_IndexAfter(& HAna.PulseList, VOT);
+    int VOTIndex = CDSP2_List_Int_IndexAfter(& HAna.PulseList, IntVOT);
     int VHalfIndex = (HAna.HNMList.Frames_Index + VOTIndex) / 2;
     int DiffSize = HAna.HNMList.Frames_Index - VHalfIndex - 4;
     
@@ -298,7 +301,7 @@ int GenUnit(RUCE_DB_Entry* Dest, Wave* Sorc)
     
     int LeftIndex = MaxElmtIndex(JumpDiff, DiffSize);
     
-    Dest -> VOT = (Real)VOT / Sorc -> SampleRate;
+    Dest -> VOT = IntVOT / Sorc -> SampleRate;
     Dest -> SOT = Dest -> VOT;
     Dest -> InvarLeft  = HAna.PulseList.Frames[VOTIndex   + LeftIndex];
     Dest -> InvarRight = HAna.PulseList.Frames[VHalfIndex + FinalIndex];
