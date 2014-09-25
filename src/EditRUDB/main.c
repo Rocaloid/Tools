@@ -5,13 +5,14 @@
 #include <RUCE.h>
 #include "../Commons.h"
 
-#define Version "0.1.1.0"
+#define Version "0.1.2.0"
 
 /*
     editrudb param rudbfile [-t VOT] [-s SOT] [-r InvarRight] [-l InvarLeft]
-    editrudb setnoise rudbfile wavfile
-    editrudb notchnoise rudbfile [-s SOT] [-r radius] [-h central height]
-    editrudb mix rudbfile rudbfile(source) [-a positionA] [-b positionB]
+             setnoise rudbfile wavfile
+             gainnoise rudbfile [-g gain multiple]
+             notchnoise rudbfile [-s SOT] [-r radius] [-h central height]
+             mix rudbfile rudbfile(source) [-a positionA] [-b positionB]
              [-r radius]
 */
 static void PrintUsage()
@@ -23,9 +24,10 @@ static void PrintUsage()
 #define DO_SETNOISE     1
 #define DO_MIX          2
 #define DO_NOTCHNOISE   3
+#define DO_GAINNOISE    4
 
 static int  Param_Operation;
-static int  Set_t, Set_s, Set_r, Set_l, Set_a, Set_b, Set_h;
+static int  Set_t, Set_s, Set_r, Set_l, Set_a, Set_b, Set_h, Set_g;
 static Real Param_t;
 static Real Param_s;
 static Real Param_r;
@@ -33,6 +35,7 @@ static Real Param_l;
 static Real Param_a;
 static Real Param_b;
 static Real Param_h;
+static Real Param_g;
 
 static String RUDBPath;
 static String WavPath;
@@ -86,7 +89,7 @@ int main(int ArgN, char** Arg)
 {
     RNew(String, & RUDBPath, & WavPath, & RUDBPath2);
     
-    Set_t = Set_s = Set_r = Set_l = Set_a = Set_b = Set_h = 0;
+    Set_t = Set_s = Set_r = Set_l = Set_a = Set_b = Set_h = Set_g = 0;
     int c;
     if(ArgN < 2)
     {
@@ -104,6 +107,9 @@ int main(int ArgN, char** Arg)
     }else if(! strcmp(Arg[1], "notchnoise"))
     {
         Param_Operation = DO_NOTCHNOISE;
+    }else if(! strcmp(Arg[1], "gainnoise"))
+    {
+        Param_Operation = DO_GAINNOISE;
     }else if(! strcmp(Arg[1], "mix"))
     {
         Param_Operation = DO_MIX;
@@ -117,8 +123,14 @@ int main(int ArgN, char** Arg)
         return 1;
     }
     
+    #define CaseF(Id, Char) case Char: \
+            _C1(Param_, Id) = atof(optarg); \
+            _C1(Set_, Id) = 1; \
+        break
+    
     char* OptFilter = Param_Operation == DO_PARAM      ? "t:r:l:v" :
                       Param_Operation == DO_SETNOISE   ? "v"       :
+                      Param_Operation == DO_GAINNOISE  ? "g:v"     :
                       Param_Operation == DO_NOTCHNOISE ? "s:r:h:v" :
                       Param_Operation == DO_MIX        ? "a:b:r:v" : "v";
     while((c = getopt(ArgN, Arg, OptFilter)) != -1)
@@ -132,21 +144,10 @@ int main(int ArgN, char** Arg)
         if(Param_Operation == DO_PARAM)
         switch(c)
         {
-            case 't':
-                Param_t = atof(optarg);
-                Set_t   = 1;
-            break;
-            case 's':
-                Param_s = atof(optarg);
-                Set_s   = 1;
-            case 'r':
-                Param_r = atof(optarg);
-                Set_r   = 1;
-            break;
-            case 'l':
-                Param_l = atof(optarg);
-                Set_l   = 1;
-            break;
+            CaseF(t, 't');
+            CaseF(s, 's');
+            CaseF(r, 'r');
+            CaseF(l, 'l');
             case '?':
                 PrintUsage();
                 return 1;
@@ -165,21 +166,23 @@ int main(int ArgN, char** Arg)
                 abort();
         }
         
+        if(Param_Operation == DO_GAINNOISE)
+        switch(c)
+        {
+            CaseF(g, 'g');
+            case '?':
+                PrintUsage();
+                return 1;
+            default:
+                abort();
+        }
+        
         if(Param_Operation == DO_NOTCHNOISE)
         switch(c)
         {
-            case 's':
-                Param_s = atof(optarg);
-                Set_s   = 1;
-            break;
-            case 'r':
-                Param_r = atof(optarg);
-                Set_r   = 1;
-            break;
-            case 'h':
-                Param_h = atof(optarg);
-                Set_h   = 1;
-            break;
+            CaseF(s, 's');
+            CaseF(r, 'r');
+            CaseF(h, 'h');
             case '?':
                 PrintUsage();
                 return 1;
@@ -190,18 +193,9 @@ int main(int ArgN, char** Arg)
         if(Param_Operation == DO_MIX)
         switch(c)
         {
-            case 'a':
-                Param_a = atof(optarg);
-                Set_a   = 1;
-            break;
-            case 'b':
-                Param_b = atof(optarg);
-                Set_b   = 1;
-            break;
-            case 'r':
-                Param_r = atof(optarg);
-                Set_r   = 1;
-            break;
+            CaseF(a, 'a');
+            CaseF(b, 'b');
+            CaseF(r, 'r');
             case '?':
                 PrintUsage();
                 return 1;
@@ -212,6 +206,7 @@ int main(int ArgN, char** Arg)
     
     int NArgReq = Param_Operation == DO_PARAM      ? 2 :
                   Param_Operation == DO_SETNOISE   ? 3 :
+                  Param_Operation == DO_GAINNOISE  ? 2 :
                   Param_Operation == DO_NOTCHNOISE ? 2 :
                   Param_Operation == DO_MIX        ? 3 : 0;
     if(optind > ArgN - NArgReq)
@@ -228,6 +223,8 @@ int main(int ArgN, char** Arg)
     String_SetChars(& RUDBPath, Arg[optind + 1]);
     if(Param_Operation == DO_SETNOISE)
         String_SetChars(& WavPath, Arg[optind + 2]);
+    if(Param_Operation == DO_GAINNOISE)
+        String_SetChars(& WavPath, Arg[optind + 1]);
     if(Param_Operation == DO_NOTCHNOISE)
         String_SetChars(& WavPath, Arg[optind + 1]);
     if(Param_Operation == DO_MIX)
@@ -248,11 +245,28 @@ int main(int ArgN, char** Arg)
         if(Set_t)
             Entry.VOT = Param_t;
         if(Set_s)
-            Entry.VOT = Param_s;
+            Entry.SOT = Param_s;
         if(Set_r)
             Entry.InvarRight = Param_r;
         if(Set_l)
             Entry.InvarLeft  = Param_l;
+    }
+    
+    if(Param_Operation == DO_GAINNOISE)
+    {
+        float SOT = Entry.SOT;
+        float Radius = 0.05;
+        
+        int Center = SOT * Entry.Samprate;
+        int Length = Radius * Entry.Samprate;
+        int i;
+        
+        #undef Wave
+        CDSP2_VCMul_Float(Entry.Wave, Entry.Wave, Param_g, Center);
+        for(i = 0; i < Length; i ++)
+            Entry.Wave[i + Center] *= (Real)i / Length * (1.0 - Param_g)
+                                    + Param_g;
+        #define Wave _C(CDSP2_Wave_, Real)
     }
     
     if(Param_Operation == DO_NOTCHNOISE)
