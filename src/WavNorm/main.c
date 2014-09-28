@@ -1,4 +1,4 @@
-﻿#include <unistd.h>
+#include <unistd.h>
 
 #include <RUtil2.h>
 #include <CVEDSP2.h>
@@ -6,36 +6,23 @@
 #include <RUCE.h>
 #include "../Commons.h"
 
-/*
-    -t
-        Automatically trim the output files.
-    
-    -s <noisegate>
-        Specify the noise gate(the threshold to distinguish noise from vocals).
-    
-    -e <endinggate>
-        Similar to -s. Specify the ending gate(the threshold to detect the
-        ending of an utterance).
-*/
-        
-#define Version "1.0.0.2"
+#define Version "1.2.0.0"
 
 int   VerboseFlag = 0;
 char* CUnitName = NULL;
 float Gain = 1.5;
 float Intensity = -50;
 int   WinSize = 1024;
-char* CRotoFile = NULL;
+char* CWavFile = NULL;
 float Threshold = 0.005;
 float EndingThreshold = 0.01;
-int TrimFlag = 0;
+int   TrimFlag = 0;
 
 static void PrintUsage()
 {
-    fprintf(stderr, "Usage: wavnorm [-n unitname]\n"
-                    "               [-t] [-s noisegate] [-e endinggate]\n"
+    fprintf(stderr, "Usage: wavnorm [-t] [-s noisegate] [-e endinggate]\n"
                     "               [-g gain] [-i intensity] [-z size]\n"
-                    "               [-v] [-V] rotofile\n");
+                    "               [-v] [-V] wavfile\n");
 }
 
 static void NormUnit(Wave* Dest, Wave* Sorc)
@@ -112,7 +99,7 @@ static void TrimUnit(Wave* Dest, Wave* Sorc)
 int main(int ArgN, char** Arg)
 {
     int c;
-    while((c = getopt(ArgN, Arg, "ts:e:n:g:i:z:Vv")) != -1)
+    while((c = getopt(ArgN, Arg, "ts:e:g:i:z:Vv")) != -1)
     {
         switch(c)
         {
@@ -154,7 +141,7 @@ int main(int ArgN, char** Arg)
     
     if(optind > ArgN - 1)
     {
-        fprintf(stderr, "[Error] Missing argument 'rotofile'.\n");
+        fprintf(stderr, "[Error] Missing argument 'wavfile'.\n");
         PrintUsage();
         return 1;
     }
@@ -162,28 +149,9 @@ int main(int ArgN, char** Arg)
     {
         fprintf(stderr, "[Error] Redundant argument '%s'.\n", Arg[optind + 1]);
     }
-    CRotoFile = Arg[optind];
-    
-    String UnitName;
-    String_Ctor(& UnitName);
-    if(CUnitName)
-        String_SetChars(& UnitName, CUnitName);
-    
-    //Roto loading
-    String RotoPath;
-    String_Ctor(& RotoPath);
-    String_SetChars(& RotoPath, CRotoFile);
-    
-    RUCE_Roto InRoto;
-    if(! RUCE_Roto_CtorLoad(& InRoto, & RotoPath))
-    {
-        fprintf(stderr, "[Error] Cannot open '%s'.\n", CRotoFile);
-        return 1;
-    }
-    
+    CWavFile = Arg[optind];
+        
     Wave InWave, OutWave;
-    RUCE_Roto_Entry Entry;
-    RUCE_Roto_Entry_Ctor(& Entry);
     RCall(Wave, Ctor)(& InWave);
     RCall(Wave, Ctor)(& OutWave);
     
@@ -192,82 +160,32 @@ int main(int ArgN, char** Arg)
     RCall(CDSP2_GenHanning, Real)(Window, WinSize);
     RCall(Wave, SetWindow)(& InWave, Window, WinSize);
     
-    String DirName;
-    String_Ctor(& DirName);
+    String WavName;
+    String_Ctor(& WavName);
+    String_SetChars(& WavName, CWavFile);
     
-    if(CUnitName)
+    //Generate single unit.
+    int Status = RCall(Wave, FromFile)(& InWave, & WavName);
+    if(Status < 1)
     {
-        //Generate single unit.
-        int Status = RUCE_Roto_GetEntry(& InRoto, & Entry, & UnitName);
-        if(Status < 1) printf("Entry '%s' does not exist.\n", CUnitName);
-        String_Copy(& Entry.Name, & UnitName);
-        DirFromFilePath(& DirName, & RotoPath);
-        String_JoinChars(& DirName, "/");
-        String_Join(& DirName, & UnitName);
-        String_JoinChars(& DirName, ".wav");
-        Status = RCall(Wave, FromFile)(& InWave, & DirName);
-        if(Status < 1)
-        {
-            fprintf(stderr, "[Error] Cannot load '%s'.\n",
-                String_GetChars(& DirName));
-        }else
-        {
-            printf("Generating unit \'%s\'...\n", String_GetChars(& UnitName));
-            
-            if(TrimFlag)
-            {
-                TrimUnit(& OutWave, & InWave);
-                RCall(Wave, From)(& InWave, & OutWave);
-            }
-            NormUnit(& OutWave, & InWave);
-            
-            if(VerboseFlag)
-                printf("Saving wav...\n");
-            RCall(Wave, ToFile)(& OutWave, & DirName);
-        }
+        fprintf(stderr, "[Error] Cannot load '%s'.\n", CWavFile);
     }else
     {
-        //Batch process all units.
-        int Num = RUCE_Roto_GetEntryNum(& InRoto);
-        int i;
-        for(i = 0; i < Num; i ++)
+        if(TrimFlag)
         {
-            RUCE_Roto_GetEntryByIndex(& InRoto, & Entry, i);
-            
-            DirFromFilePath(& DirName, & RotoPath);
-            String_JoinChars(& DirName, "/");
-            String_Join(& DirName, & Entry.Name);
-            String_JoinChars(& DirName, ".wav");
-            RCall(Wave, Dtor)(& InWave);
-            RCall(Wave, Ctor)(& InWave);
-            RCall(Wave, SetWindow)(& InWave, Window, WinSize);
-            int Status = RCall(Wave, FromFile)(& InWave, & DirName);
-            if(Status < 1)
-            {
-                fprintf(stderr, "[Error] Cannot load '%s'.\n",
-                    String_GetChars(& DirName));
-                continue;
-            }
-            
-            printf("Generating unit \'%s\'...\n",
-                String_GetChars(& Entry.Name));
-            if(TrimFlag)
-            {
-                TrimUnit(& OutWave, & InWave);
-                RCall(Wave, From)(& InWave, & OutWave);
-            }
-            NormUnit(& OutWave, & InWave);
-            
-            if(VerboseFlag)
-                printf("Saving wav...\n");
-            RCall(Wave, ToFile)(& OutWave, & DirName);
+            TrimUnit(& OutWave, & InWave);
+            RCall(Wave, From)(& InWave, & OutWave);
         }
+        NormUnit(& OutWave, & InWave);
+        
+        if(VerboseFlag)
+            printf("Saving wav...\n");
+        RCall(Wave, ToFile)(& OutWave, & WavName);
     }
     
-    
     RFree(Window);
-    RDelete(& InWave, & OutWave, & Entry, & DirName);
-    RDelete(& RotoPath, & InRoto, & UnitName);
+    RDelete(& InWave, & OutWave);
+    RDelete(& WavName);
     return 0;
 }
 

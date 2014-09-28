@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <unistd.h>
 
 #include <RUtil2.h>
@@ -12,19 +12,17 @@
 
 static void PrintUsage()
 {
-    fprintf(stderr, "Usage: genrudb [-n unitname] [-r]\n"
-                    "               [-u freq] [-l freq] [-m method]\n"
+    fprintf(stderr, "Usage: genrudb [-u freq] [-l freq] [-m method]\n"
                     "               [-s freq] [-h hopsize] [-z size]\n"
                     "               [-c threshold] [-w window] [-t position]\n"
-                    "               [-o offset] [-i threshold] [-v] [-V]\n"
-                    "               rotofile\n");
+                    "               [-i threshold] [-v] [-V]\n"
+                    "               [-q] wavfile\n");
 }
 
 int main(int ArgN, char** Arg)
 {
-    CRotoFile = NULL;
-    CUnitName = NULL;
-    ReadOnlyFlag = 0;
+    CWavFile = NULL;
+    QuitFlag = 0;
     UFundFreq = 700;
     LFundFreq = 80;
     CFundMethod = "YIN";
@@ -35,20 +33,16 @@ int main(int ArgN, char** Arg)
     CWindow = "hanning";
     VOT = 0;
     VOTFlag = 0;
-    Offset = 500;
     InvarThreshold = 0.003;
     VerboseFlag = 0;
     
     int c;
-    while((c = getopt(ArgN, Arg, "n:ru:l:m:s:h:z:w:t:o:i:Vv")) != -1)
+    while((c = getopt(ArgN, Arg, "qu:l:m:s:h:z:w:t:i:Vv")) != -1)
     {
         switch(c)
         {
-            case 'n':
-                CUnitName = optarg;
-            break;
-            case 'r':
-                ReadOnlyFlag = 1;
+            case 'q':
+                QuitFlag = 1;
             break;
             case 'u':
                 UFundFreq = atof(optarg);
@@ -75,11 +69,8 @@ int main(int ArgN, char** Arg)
                 CWindow = optarg;
             break;
             case 't':
-                VOT = atoi(optarg);
+                VOT = atof(optarg);
                 VOTFlag = 1;
-            break;
-            case 'o':
-                Offset = atoi(optarg);
             break;
             case 'v':
                 printf("Rocaloid GenRUDB version " Version "\n");
@@ -101,7 +92,7 @@ int main(int ArgN, char** Arg)
     
     if(optind > ArgN - 1)
     {
-        fprintf(stderr, "[Error] Missing argument 'rotofile'.\n");
+        fprintf(stderr, "[Error] Missing argument 'wavfile'.\n");
         PrintUsage();
         return 1;
     }
@@ -109,20 +100,24 @@ int main(int ArgN, char** Arg)
     {
         fprintf(stderr, "[Error] Redundant argument '%s'.\n", Arg[optind + 1]);
     }
-    CRotoFile = Arg[optind];
+    CWavFile = Arg[optind];
     
     //String conversion
-    String TempFundMethod, TempWindowName;
-    RNew(String, & FundMethod, & UnitName, & WindowName,
-                 & TempFundMethod, & TempWindowName);
+    String TempFundMethod, TempWindowName, TempFileName;
+    RNew(String, & FundMethod, & UnitName, & WavName, & WindowName,
+                 & TempFundMethod, & TempWindowName, & TempFileName);
     String_SetChars(& TempFundMethod, CFundMethod);
     String_SetChars(& TempWindowName, CWindow);
-    if(CUnitName)
-        String_SetChars(& UnitName, CUnitName);
+    if(CWavFile)
+        String_SetChars(& WavName, CWavFile);
+    String_FromChars(Dot, ".");
+    BaseFromFilePath(& TempFileName, & WavName);
+    int DotPos = InStrRev(& TempFileName, & Dot);
+    Left(& UnitName, & TempFileName, DotPos);
     
     UpperCase(& FundMethod, & TempFundMethod);
     LowerCase(& WindowName, & TempWindowName);
-    RDelete(& TempFundMethod, & TempWindowName);
+    RDelete(& TempFundMethod, & TempWindowName, & Dot, & TempFileName);
     
     //Value validity checking
     if(UFundFreq < LFundFreq)
@@ -214,36 +209,13 @@ int main(int ArgN, char** Arg)
         return 1;
     }
     
-    //Roto loading
-    String RotoPath;
-    String_Ctor(& RotoPath);
-    String_SetChars(& RotoPath, CRotoFile);
-    
-    RUCE_Roto InRoto;
-    if(! RUCE_Roto_CtorLoad(& InRoto, & RotoPath))
-    {
-        fprintf(stderr, "[Error] Cannot open '%s'.\n", CRotoFile);
-        return 1;
-    }
-    
     Wave InWave;
-    RUCE_Roto_Entry Entry;
     RUCE_DB_Entry DBEntry;
-    RUCE_Roto_Entry_Ctor(& Entry);
     RUCE_DB_Entry_Ctor(& DBEntry);
     RCall(Wave, Ctor)(& InWave);
     
     //RUDB Generation
     CDSP2_SetArch(CDSP2_Arch_Gnrc);
-    #define _PrintConfig() \
-            if(ReadOnlyFlag) \
-            { \
-                printf("Roto configuration for '%s':\n", \
-                    String_GetChars(& Entry.Name)); \
-                printf("  VOT = %d\n", Entry.VOT); \
-                printf("  InvarLeft = %d\n", Entry.InvarLeft); \
-                printf("  InvarRight = %d\n", Entry.InvarRight); \
-            }
     
     Real* Window = RCall(RAlloc, Real)(WinSize);
     if(EWindow == Hanning)
@@ -254,85 +226,22 @@ int main(int ArgN, char** Arg)
         RCall(CDSP2_GenBlackman, Real)(Window, WinSize);
     RCall(Wave, SetWindow)(& InWave, Window, WinSize);
     
-    String DirName;
-    String_Ctor(& DirName);
-    if(CUnitName)
+    int Status = RCall(Wave, FromFile)(& InWave, & WavName);
+    if(Status < 1)
     {
-        //Generate single unit.
-        int Status = RUCE_Roto_GetEntry(& InRoto, & Entry, & UnitName);
-        if(Status < 1) printf("Entry '%s' does not exist.\n", CUnitName);
-        String_Copy(& Entry.Name, & UnitName);
-        DirFromFilePath(& DirName, & RotoPath);
-        String_JoinChars(& DirName, "/");
-        String_Join(& DirName, & UnitName);
-        String_JoinChars(& DirName, ".wav");
-        Status = RCall(Wave, FromFile)(& InWave, & DirName);
-        if(Status < 1)
-        {
-            fprintf(stderr, "[Error] Cannot load '%s'.\n",
-                String_GetChars(& DirName));
-        }else
-        {
-            GenUnit(& Entry, & DBEntry, & InWave);
-            if(Status < 1) printf("Creating entry '%s'...\n", CUnitName);
-                RUCE_Roto_SetEntry(& InRoto, & Entry);
-            
-            if(VerboseFlag)
-                printf("Saving rudb...\n");
-            DirFromFilePath(& DirName, & RotoPath);
-            String_JoinChars(& DirName, "/");
-            String_Join(& DirName, & Entry.Name);
-            String_JoinChars(& DirName, ".rudb");
-            RUCE_RUDB_Save(& DBEntry, & DirName);
-            _PrintConfig();
-        }
+        fprintf(stderr, "[Error] Cannot load '%s'.\n", CWavFile);
     }else
     {
-        //Batch process all units.
-        int Num = RUCE_Roto_GetEntryNum(& InRoto);
-        int i;
-        for(i = 0; i < Num; i ++)
-        {
-            RUCE_Roto_GetEntryByIndex(& InRoto, & Entry, i);
-            
-            DirFromFilePath(& DirName, & RotoPath);
-            String_JoinChars(& DirName, "/");
-            String_Join(& DirName, & Entry.Name);
-            String_JoinChars(& DirName, ".wav");
-            RCall(Wave, Dtor)(& InWave);
-            RCall(Wave, Ctor)(& InWave);
-            RCall(Wave, SetWindow)(& InWave, Window, WinSize);
-            int Status = RCall(Wave, FromFile)(& InWave, & DirName);
-            if(Status < 1)
-            {
-                fprintf(stderr, "[Error] Cannot load '%s'.\n",
-                    String_GetChars(& DirName));
-                continue;
-            }
-            
-            GenUnit(& Entry, & DBEntry, & InWave);
-            RUCE_Roto_SetEntry(& InRoto, & Entry);
-            
-            if(VerboseFlag)
-                printf("Saving rudb...\n");
-            DirFromFilePath(& DirName, & RotoPath);
-            String_JoinChars(& DirName, "/");
-            String_Join(& DirName, & Entry.Name);
-            String_JoinChars(& DirName, ".rudb");
-            RUCE_RUDB_Save(& DBEntry, & DirName);
-            
-            _PrintConfig();
-        }
-    }
-    
-    if(! ReadOnlyFlag)
-    {
-        RUCE_Roto_Write(& InRoto, & RotoPath);
+        GenUnit(& DBEntry, & InWave);
+        if(VerboseFlag)
+            printf("Saving rudb...\n");
+        String_JoinChars(& UnitName, ".rudb");
+        RUCE_RUDB_Save(& DBEntry, & UnitName);
     }
     
     RFree(Window);
-    RDelete(& InRoto, & RotoPath, & Entry, & InWave, & DirName, & DBEntry);
-    RDelete(& FundMethod, & UnitName, & WindowName);
+    RDelete(& InWave, & DBEntry);
+    RDelete(& FundMethod, & UnitName, & WavName, & WindowName);
     return 0;
 }
 

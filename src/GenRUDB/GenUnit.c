@@ -1,66 +1,65 @@
-﻿#include "GenUnit.h"
+#include "GenUnit.h"
 #include <stdlib.h>
 #include <CVESVP.h>
 
-Real ContourDiff(HNMContour* Sorc1, HNMContour* Sorc2)
+Real SinusoidDiff(Sinusoid* Sorc1, Sinusoid* Sorc2, int HNum)
 {
-    if(Sorc1 -> Size != Sorc2 -> Size) return -1;
-    int HalfSize = Sorc1 -> Size / 2 + 1;
-    
-    int U1 = 0;
-    int U2 = 0;
     int i;
-    for(i = 0; i < HalfSize; i ++)
-        if(Sorc1 -> Hmnc[i] < -100)
-        {
-            U1 = i;
-            break;
-        }
-    for(i = 0; i < HalfSize; i ++)
-        if(Sorc2 -> Hmnc[i] < -100)
-        {
-            U2 = i;
-            break;
-        }
+    Real* Diff = RCall(RAlloc, Real)(HNum);
+    RCall(CDSP2_VSet, Real)(Diff, 0.0000001, HNum);
     
-    int U = (U1 < U2 ? U1 : U2) / 2;
-    Real* Diff = RCall(RAlloc, Real)(U);
-    RCall(CDSP2_VSub, Real)(Diff, Sorc1 -> Hmnc, Sorc2 -> Hmnc, U);
-    RCall(CDSP2_VMul, Real)(Diff, Diff, Diff, U);
-    Real Ret = RCall(CDSP2_VSum, Real)(Diff, 0, U) / (Real)U;
+    if(Sorc1 -> Ampl_Index < HNum - 1)
+        RCall(CDSP2_VCopy, Real)(Diff, Sorc1 -> Ampl,
+            Sorc1 -> Ampl_Index + 1);
+    else
+        RCall(CDSP2_VCopy, Real)(Diff, Sorc1 -> Ampl, HNum);
+    
+    for(i = 0; i < HNum; i ++)
+        Diff[i] = log(Diff[i]);
+    
+    if(Sorc2 -> Ampl_Index < HNum - 1)
+    {
+        for(i = 0; i <= Sorc2 -> Ampl_Index; i ++)
+            Diff[i] -= log(Sorc2 -> Ampl[i]);
+    }else
+    {
+        for(i = 0; i < HNum; i ++)
+            Diff[i] -= log(Sorc2 -> Ampl[i]);
+    }
+    
+    for(i = 0; i < HNum; i ++)
+        if(fabs(Diff[i]) > 10) Diff[i] = 0;
+    
+    RCall(CDSP2_VMul, Real)(Diff, Diff, Diff, HNum);
+    Real Ret = RCall(CDSP2_VSum, Real)(Diff, 0, HNum) / HNum / HNum;
     
     RFree(Diff);
     return Ret;
 }
 
-Real sigmoid(Real x)
+int MaxElmtIndex(Real* Sorc, int Size)
 {
-    return 1.0 / (1.0 + exp(- x));
+    Real Max = Sorc[0];
+    int  Ret = 0;
+    int i;
+    
+    for(i = 0; i < Size; i ++)
+        if(Sorc[i] > Max)
+        {
+            Ret = i;
+            Max = Sorc[i];
+        }
+    
+    return Ret;
 }
 
-int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
+int GenUnit(RUCE_DB_Entry* Dest, Wave* Sorc)
 {
     int FRet = 1;
     int WSize = Sorc -> Size;
+    int IntVOT;
     
-    printf("Generating unit \'%s\'...\n", String_GetChars(& Ret -> Name));
     RCall(Wave, Resize)(Sorc, Sorc -> Size + WinSize * 2);
-    
-    //VOT detection
-    if(! VOTFlag)
-        VOT = RCall(CSVP_VOTFromWave, Real)(Sorc, 0, WSize);
-    
-    if(VOT > Sorc -> Size * 2 / 3)
-    {
-        fprintf(stderr, "[Error] VOT(%d) is too large for unit '%s'. "
-                        "Skipped.\n",
-            VOT, String_GetChars(& Ret -> Name));
-        return 0;
-    }
-    
-    if(VerboseFlag)
-    printf("VOT = %d\n", VOT);
-    Ret -> VOT = VOT;
     
     //F0 estimation
     F0Iterlyzer F0Iter;
@@ -71,15 +70,12 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
     F0Iter.Option.Threshold = 0.01;
     F0Iter.Option.YIN.W = 300;
     F0Iter.Option.YIN.Threshold = 0.2;
-    if(EF0 == YIN)
-        F0Iter.Option.Method = CSVP_F0_YIN;
-    else
-        F0Iter.Option.Method = CSVP_F0_SpecStep;
+    F0Iter.Option.Method = EF0;
     
-    int TempSize = VOT + 10000 > WSize ? WSize : VOT + 10000;
+    int TempSize = WSize / 2 + 10000 > WSize ? WSize : WSize / 2 + 10000;
     RCall(F0Iterlyzer, SetHopSize)(& F0Iter, 256);
     RCall(F0Iterlyzer, SetWave)(& F0Iter, Sorc);
-    RCall(F0Iterlyzer, SetPosition)(& F0Iter, VOT + 2000);
+    RCall(F0Iterlyzer, SetPosition)(& F0Iter, WSize / 2);
     if(RCall(F0Iterlyzer, PreAnalysisTo)(& F0Iter, TempSize) < 1)
     {
         fprintf(stderr, "[Error] Fundamental frequency estimation failed. "
@@ -87,79 +83,120 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
         RDelete(& F0Iter);
         return 0;
     }
-    RCall(F0Iterlyzer, PrevTo)(& F0Iter, VOT);
+    RCall(F0Iterlyzer, PrevTo)(& F0Iter, 0);
     RCall(F0Iterlyzer, IterNextTo)(& F0Iter, Sorc -> Size);
     RCall(CSVP_F0PostProcess, Real)(& F0Iter.F0List, 4000, 0.15,
         LFundFreq, UFundFreq);
     
+    IntVOT = VOT * Sorc -> SampleRate;
+    if(! VOTFlag)
+        IntVOT = RCall(CSVP_VOTFromF0Match, Real)(& F0Iter.F0List, 30, 3, 1000);
+    
+    if(VerboseFlag)
+    printf("VOT = %f sec.\n", (Real)IntVOT / Sorc -> SampleRate);
+    
     Real Sum = RCall(CDSP2_VSum, Real)(F0Iter.F0List.Y, 0,
         F0Iter.F0List.Y_Index + 1);
+    Real AvgF0 = (Real)Sum / ((Real)F0Iter.F0List.Y_Index + 1.0);
     
     if(VerboseFlag)
-    printf("Average fundamental frequency: %fHz\n",
-        (Real)Sum / ((Real)F0Iter.F0List.Y_Index + 1.0));
+    printf("Average fundamental frequency: %fHz (%s)\n",
+        AvgF0,
+        EF0 == CSVP_F0_YIN ? "YIN" : "SPECSTEP");
     
-    //PSOLA Analysis
+    //Noise Analysis
     if(VerboseFlag)
-    printf("PSOLA analysis...\n");
-    PSOLAIterlyzer PAna;
-    RCall(PSOLAIterlyzer, Ctor)(& PAna);
-    RCall(PSOLAIterlyzer, SetWave)(& PAna, Sorc);
-    RCall(PSOLAIterlyzer, SetPosition)(& PAna, VOT + 3000);
-    RCall(PSOLAIterlyzer, SetBound)(& PAna, VOT);
-    RCall(PSOLAIterlyzer, SetPitch)(& PAna, & F0Iter.F0List);
-    if(RCall(PSOLAIterlyzer, PreAnalysisTo)(& PAna, TempSize) < 1)
-    {
-        fprintf(stderr, "[Error] PSOLA pre-analysis failed. Skipped.\n");
-        RDelete(& F0Iter, & PAna);
-        return 0;
-    }
-    if(RCall(PSOLAIterlyzer, IterNextTo)(& PAna, WSize) < 1)
-    {
-        fprintf(stderr, "[Error] PSOLA forward analysis failed. Skipped.\n");
-        RDelete(& F0Iter, & PAna);
-        return 0;
-    }
-    if(RCall(PSOLAIterlyzer, PrevTo)(& PAna, 0) < 1)
-    {
-        fprintf(stderr, "[Error] PSOLA backward analysis failed. Skipped.\n");
-        RDelete(& F0Iter, & PAna);
-        return 0;
-    }
+        printf("Noise analysis...\n");
+    Wave ConWave, VowWave;
+    RNew(Wave, & ConWave, & VowWave);
+    SinusoidIterlyzer SAna;
+    RCall(SinusoidIterlyzer, Ctor)(& SAna);
+    SAna.GenPhase = 1;
+    SAna.LeftBound = IntVOT + 1500;
+    SAna.DThreshold = AvgF0 / 3.0;
+    SAna.DFThreshold = AvgF0 / 5.0;
+    
+    RCall(SinusoidIterlyzer, SetHopSize)(& SAna, 128);
+    RCall(SinusoidIterlyzer, SetWave)(& SAna, Sorc);
+    RCall(SinusoidIterlyzer, SetPosition)(& SAna, SAna.LeftBound);
+    RCall(SinusoidIterlyzer, SetUpperFreq)(& SAna, 9000);
+    RCall(SinusoidIterlyzer, SetPitch)(& SAna, & F0Iter.F0List);
+    
+    RCall(SinusoidIterlyzer, PrevTo)(& SAna, 0);
+    RCall(SinusoidIterlyzer, IterNextTo)(& SAna, SAna.LeftBound + 3000);
+    
+    RCall(CSVP_SinusoidalFromSinuList, Real)(& VowWave,
+        & SAna.PulseList, & SAna.SinuList, & SAna.PhseList);
+    
+    int i;
+    for(i = 0; i <= VowWave.Size; i ++)
+        if(VowWave.Data[i] > 0.015)
+            break;
+    int  VOTSelDest = i + 1500;
+    Real VOTSelMax = RCall(CDSP2_VMaxElmt, Real)(VowWave.Data, i, VOTSelDest);
+    for(; i < VOTSelDest; i ++)
+        if(VowWave.Data[i] > VOTSelMax / 2)
+            break;
+    IntVOT = i;
+    if(VerboseFlag)
+        printf("Refined VOT estimation: %f sec.\n",
+            (Real)IntVOT / Sorc -> SampleRate);
+    
+    RCall(CSVP_NoiseTurbFromWave, Real)(& ConWave, Sorc, & VowWave);
+    
+    RCall(SinusoidIterlyzer, Dtor)(& SAna);
+    RDelete(& VowWave);
     
     //HNM Analysis
     HNMIterlyzer HAna;
     if(VerboseFlag)
-    printf("HNM analysis...\n");
+        printf("HNM analysis...\n");
     RCall(HNMIterlyzer, CtorSize)(& HAna, WinSize);
     RCall(HNMIterlyzer, SetWave)(& HAna, Sorc);
     RCall(HNMIterlyzer, SetHopSize)(& HAna, HopSize);
-    RCall(HNMIterlyzer, SetPosition)(& HAna, VOT + Offset + 2000);
+    RCall(HNMIterlyzer, SetPosition)(& HAna, IntVOT + 2000);
     RCall(HNMIterlyzer, SetUpperFreq)(& HAna, USinuFreq);
     RCall(HNMIterlyzer, SetPitch)(& HAna, & F0Iter.F0List);
     HAna.GenPhase = 1;
-    if(! RCall(HNMIterlyzer, PrevTo)(& HAna, VOT + Offset))
+    HAna.LeftBound = IntVOT + 1500;
+    HAna.DThreshold = AvgF0 / 3.0;
+    HAna.DFThreshold = AvgF0 / 5.0;
+    if(VerboseFlag)
+        printf("Backward HNM analysis...\n");
+    if(! RCall(HNMIterlyzer, PrevTo)(& HAna, 0))
     {
         fprintf(stderr, "[Error] HNM backward analysis failed. Skipped.\n");
-        RDelete(& F0Iter, & PAna, & HAna);
+        RDelete(& F0Iter, & HAna);
         return 0;
     }
+    if(VerboseFlag)
+        printf("Forward analysis...\n");
     if(! RCall(HNMIterlyzer, IterNextTo)(& HAna, WSize))
     {
         fprintf(stderr, "[Error] HNM forward analysis failed. Skipped.\n");
-        RDelete(& F0Iter, & PAna, & HAna);
+        RDelete(& F0Iter, & HAna);
         return 0;
     }
+    
+    if(VerboseFlag)
+        printf("%d HNM frames generated.\n", HAna.HNMList.Frames_Index + 1);
     
     //Filling in
     if(VerboseFlag)
     printf("Converting data structure...\n");
-    int i, j;
+    int j;
     
     Dest -> HopSize = HopSize;
     Dest -> NoizSize = WinSize / 16;
     
-    Array_From(int, Dest -> PulseList, PAna.PulseList.Frames);
+    #undef Wave
+    Dest -> Wave = realloc(Dest -> Wave, ConWave.Size * 4);
+    for(i = 0; i < ConWave.Size; i ++)
+        Dest -> Wave[i] = ConWave.Data[i];
+    Dest -> WaveSize = ConWave.Size;
+    Dest -> Samprate = Sorc -> SampleRate;
+    #define Wave CDSP2_Wave_Float
+    
     Array_ObjResize(RUCE_DB_Frame, Dest -> FrameList,
         HAna.HNMList.Frames_Index + 1);
     Dest -> FrameList_Index = HAna.HNMList.Frames_Index;
@@ -190,6 +227,8 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
             DestEntry -> Ampl[j] = SorcEntry -> Hmnc.Ampl[j];
             DestEntry -> Phse[j] = SorcPhase -> Data[j];
             
+            if(DestEntry -> Ampl[j] <= 0)
+                DestEntry -> Ampl[j] = 0.0000001;
             //Harmonic correction
             if(HCorrThreshold < 200.0 && i > 0 && j > 1 && j < 15)
                 if(fabs(DestEntry -> Freq[j] - (DestEntry -> Freq[j - 1] +
@@ -201,83 +240,77 @@ int GenUnit(RUCE_Roto_Entry* Ret, RUCE_DB_Entry* Dest, Wave* Sorc)
                 }
         }
     }
-    RDelete(& PAna);
     
     if(VerboseFlag)
     printf("Invariant region analysis...\n");
     //Generate Invar end points
-    List_HNMContour ContourList;
-    RCall(List_HNMContour, CtorSize)(& ContourList,
-        HAna.HNMList.Frames_Index + 1, WinSize);
-    ContourList.Frames_Index = HAna.HNMList.Frames_Index;
     
-    for(i = 0; i <= ContourList.Frames_Index; i ++)
-        RCall(HNMFrame, ToContour)(& HAna.HNMList.Frames[i],
-            & ContourList.Frames[i]);
+    #define DiffProcess() \
+        for(i = 3; i < DiffSize - 3; i ++) \
+        { \
+            Real s1 = LocalDiff[i - 3] + LocalDiff[i - 2] + LocalDiff[i - 1]; \
+            Real s2 = LocalDiff[i + 1] + LocalDiff[i + 2] + LocalDiff[i + 3]; \
+            JumpDiff[i] = (s1 - s2) / 4.0; \
+        } do {} while(0)
+    
+    int VOTIndex = CDSP2_List_Int_IndexAfter(& HAna.PulseList, IntVOT);
+    int VHalfIndex = (HAna.HNMList.Frames_Index + VOTIndex) / 2;
+    int DiffSize = HAna.HNMList.Frames_Index - VHalfIndex - 4;
+    
+    HNMFrame* EndingFrame = & HAna.HNMList.Frames
+                             [HAna.HNMList.Frames_Index - DiffSize / 10];
+    HNMFrame* MiddleFrame = & HAna.HNMList.Frames[VHalfIndex];
     
     Array_Define(Real, LocalDiff);
     Array_Ctor(Real, LocalDiff);
-    Array_Resize(Real, LocalDiff, ContourList.Frames_Index + 1);
-    Array_Define(Real, AvgDiff);
-    Array_Ctor(Real, AvgDiff);
+    Array_Define(Real, JumpDiff);
+    Array_Ctor(Real, JumpDiff);
+    Array_Resize(Real, LocalDiff, DiffSize);
+    Array_Resize(Real, JumpDiff , DiffSize);
+    LocalDiff_Index = DiffSize - 1;
+    JumpDiff_Index  = DiffSize - 1;
     
-    LocalDiff_Index = ContourList.Frames_Index;
-    for(i = 0; i <= LocalDiff_Index; i ++) LocalDiff[i] = 0;
+    RCall(CDSP2_VSet, Real)(LocalDiff, 0, DiffSize);
+    RCall(CDSP2_VSet, Real)(JumpDiff , 0, DiffSize);
     
-    for(i = ContourList.Frames_Index * 0.02;
-        i < ContourList.Frames_Index * 0.07;
-        i ++)
+    for(i = 0; i < DiffSize; i ++)
     {
-        HNMContour* Cmp1 = & ContourList.Frames[i * 10];
-        for(j = 0; j <= LocalDiff_Index; j ++)
-        {
-            HNMContour* Cmp2 = & ContourList.Frames[j];
-            Real Diff = ContourDiff(Cmp1, Cmp2);
-            //Normalize
-            LocalDiff[j] += sigmoid(Diff) / (Real)LocalDiff_Index;
-        }
+        HNMFrame* CompareFrame = & HAna.HNMList.Frames[i + VHalfIndex];
+        LocalDiff[i] = SinusoidDiff(& EndingFrame -> Hmnc,
+                                    & CompareFrame -> Hmnc, 8);
     }
     
-    int AvgLen = WinSize / HopSize;
-    if(AvgLen > LocalDiff_Index / 8) AvgLen = LocalDiff_Index / 8;
-    Array_From(Real, AvgDiff, LocalDiff);
-    for(j = AvgLen; j < LocalDiff_Index - AvgLen; j ++)
-        AvgDiff[j] = RCall(CDSP2_VSum, Real)(LocalDiff, j - AvgLen, j + AvgLen)
-                   / AvgLen / 2.0;
+    DiffProcess();
     
-    Real Min = AvgDiff[0];
-    Real MinIndex = 0;
-    for(j = 0; j <= AvgDiff_Index; j ++)
-        if(AvgDiff[j] < Min)
-        {
-            Min = AvgDiff[j];
-            MinIndex = j;
-        }
+    int FinalIndex = MaxElmtIndex(JumpDiff, DiffSize);
     
-    Real InvarMin = Min + InvarThreshold;
-    Dest -> InvarLeft  = HAna.PulseList.Frames[0];
-    Ret  -> InvarLeft  = HAna.PulseList.Frames[0];
-    Dest -> InvarRight = TopOf(HAna.PulseList.Frames);
-    Ret  -> InvarRight = TopOf(HAna.PulseList.Frames);
-    for(j = MinIndex; j > 0; j --)
-        if(AvgDiff[j] > InvarMin)
-        {
-            Dest -> InvarLeft = HAna.PulseList.Frames[j];
-            Ret  -> InvarLeft = Dest -> InvarLeft;
-            break;
-        }
+    DiffSize = VHalfIndex - VOTIndex + 1;
+    Array_Resize(Real, LocalDiff, DiffSize);
+    Array_Resize(Real, JumpDiff , DiffSize);
+    RCall(CDSP2_VSet, Real)(LocalDiff, 0, DiffSize);
+    RCall(CDSP2_VSet, Real)(JumpDiff , 0, DiffSize);
     
-    for(j = MinIndex; j <= LocalDiff_Index; j ++)
-        if(AvgDiff[j] > InvarMin)
-        {
-            Dest -> InvarRight = HAna.PulseList.Frames[j];
-            Ret  -> InvarRight = Dest -> InvarRight;
-            break;
-        }
+    for(i = 0; i < DiffSize; i ++)
+    {
+        HNMFrame* CompareFrame = & HAna.HNMList.Frames[i + VOTIndex];
+        LocalDiff[i] = SinusoidDiff(& MiddleFrame -> Hmnc,
+                                    & CompareFrame -> Hmnc, 8);
+    }
+    
+    DiffProcess();
+    
+    int LeftIndex = MaxElmtIndex(JumpDiff, DiffSize);
+    
+    Dest -> VOT = (Real)IntVOT / Sorc -> SampleRate;
+    Dest -> SOT = Dest -> VOT;
+    Dest -> InvarLeft  = HAna.PulseList.Frames[VOTIndex   + LeftIndex];
+    Dest -> InvarRight = HAna.PulseList.Frames[VHalfIndex + FinalIndex];
+    Dest -> InvarLeft  /= Sorc -> SampleRate;
+    Dest -> InvarRight /= Sorc -> SampleRate;
     
     Array_Dtor(Real, LocalDiff);
-    Array_Dtor(Real, AvgDiff);
-    RDelete(& F0Iter, & HAna, & ContourList);
+    Array_Dtor(Real, JumpDiff);
+    RDelete(& F0Iter, & HAna, & ConWave);
     return FRet;
 }
 

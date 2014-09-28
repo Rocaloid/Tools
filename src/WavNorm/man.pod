@@ -4,17 +4,11 @@ WavNorm - Normalize wav files.
 
 =head1 SYNOPSIS
 
-wavnorm [Other Options] [-n unitname] rotofile
+wavnorm [Options] wavfile
 
 =head1 OPTIONS
 
-=head2 Behaviour
-
-B<-n> I<unitname>
-
-    Only normalize the specified vocal unit.
-
-    Default: Disabled(batch process all units in roto)
+=head2 Volume Normalization
 
 B<-g> I<gain>
 
@@ -34,6 +28,20 @@ B<-z> I<size>
     
     Default: 1024
 
+=head2 Silence Trimming
+
+B<-t>
+
+    Automatically trim the output files.
+    
+B<-s> I<noisegate>
+    
+    Specify the noise gate(the threshold to distinguish noise from vocals).
+    
+B<-e> I<endinggate>
+    
+    Similar to -s. Specify the ending gate(the threshold to detect the ending of an utterance).
+
 =head2 Other
 
 B<-V>
@@ -50,7 +58,7 @@ B<-v>
 
 =head1 VERSION
 
-WavNorm 1.0.0.2
+WavNorm 1.2.0.0
 
 =head1 LICENSE
 

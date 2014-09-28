@@ -1,11 +1,10 @@
 #ifndef GENRUDB_COMMON_H
 #define GENRUDB_COMMON_H
 
-#define Version "1.0.2.0"
+#define Version "1.3.0.1"
 
-char* CRotoFile;
-char* CUnitName;
-int   ReadOnlyFlag;
+char* CWavFile;
+int   QuitFlag;
 float UFundFreq;
 float LFundFreq;
 char* CFundMethod;
@@ -14,13 +13,12 @@ float HCorrThreshold;
 int   HopSize;
 int   WinSize;
 char* CWindow;
-int   VOT;
+float   VOT;
 int   VOTFlag;
-int   Offset;
 float InvarThreshold;
 int   VerboseFlag;
 
-String FundMethod, UnitName, WindowName;
+String FundMethod, UnitName, WavName, WindowName;
 
 enum
 {
@@ -29,11 +27,7 @@ enum
     Blackman
 } EWindow;
 
-enum
-{
-    YIN = 0,
-    SpecStep = 1
-} EF0;
+int EF0;
 
 #endif
 
