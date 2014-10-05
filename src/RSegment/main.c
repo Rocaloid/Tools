@@ -176,15 +176,19 @@ int main(int ArgN, char** Arg)
         String_Copy(& SegName, Name);
         String_JoinChars(& SegName, ".wav");
         
-        int Size = End - Start;
-        Real* Data = RCall(RAlloc, Real)(Size);
-        RCall(Wave, Read)(& SorcWave, Data, Start, Size);
-        
-        RCall(Wave, Resize)(& SegWave, Size);
-        RCall(Wave, Write)(& SegWave, Data, 0, Size);
-        if(! RCall(Wave, ToFile)(& SegWave, & SegName))
-            fprintf(stderr, "Exporting '%s' failed. Skipped.\n",
-                String_GetChars(& SegName));
+        if(! RegenFlag)
+        {
+            int Size = End - Start;
+            Real* Data = RCall(RAlloc, Real)(Size);
+            RCall(Wave, Read)(& SorcWave, Data, Start, Size);
+            
+            RCall(Wave, Resize)(& SegWave, Size);
+            RCall(Wave, Write)(& SegWave, Data, 0, Size);
+            if(! RCall(Wave, ToFile)(& SegWave, & SegName))
+                fprintf(stderr, "Exporting '%s' failed. Skipped.\n",
+                    String_GetChars(& SegName));
+            RFree(Data);
+        }
         
         if(RegenFlag)
         {
@@ -196,8 +200,6 @@ int main(int ArgN, char** Arg)
             String_Join(& LineBuf, Name);
             File_WriteLine(& RegenFile, & LineBuf);
         }
-        
-        RFree(Data);
     }
     if(i <= RecList_Index)
         fprintf(stderr, "Warning: redundant records in word table starting from"
