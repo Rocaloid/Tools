@@ -72,37 +72,44 @@ int GenUnit(RUCE_DB_Entry* Dest, Wave* Sorc)
     F0Iter.Option.YIN.Threshold = 0.2;
     F0Iter.Option.Method = EF0;
     
+    Real AvgF0 = 200.0;
     int TempSize = WSize / 2 + 10000 > WSize ? WSize : WSize / 2 + 10000;
     RCall(F0Iterlyzer, SetHopSize)(& F0Iter, 256);
     RCall(F0Iterlyzer, SetWave)(& F0Iter, Sorc);
     RCall(F0Iterlyzer, SetPosition)(& F0Iter, WSize / 2);
-    if(RCall(F0Iterlyzer, PreAnalysisTo)(& F0Iter, TempSize) < 1)
+    if(! Stochastic)
     {
-        fprintf(stderr, "[Error] Fundamental frequency estimation failed. "
-                        "Skipped.\n");
-        RDelete(& F0Iter);
-        return 0;
+        if(RCall(F0Iterlyzer, PreAnalysisTo)(& F0Iter, TempSize) < 1)
+        {
+            fprintf(stderr, "[Error] Fundamental frequency estimation failed. "
+                            "Skipped.\n");
+            RDelete(& F0Iter);
+            return 0;
+        }
+        RCall(F0Iterlyzer, PrevTo)(& F0Iter, 0);
+        RCall(F0Iterlyzer, IterNextTo)(& F0Iter, Sorc -> Size);
+        RCall(CSVP_F0PostProcess, Real)(& F0Iter.F0List, 4000, 0.15,
+            LFundFreq, UFundFreq);
+        IntVOT = VOT * Sorc -> SampleRate;
+        if(! VOTFlag)
+            IntVOT = RCall(CSVP_VOTFromF0Match, Real)(& F0Iter.F0List, 30, 3,
+                1000);
+        if(VerboseFlag)
+        printf("VOT = %f sec.\n", (Real)IntVOT / Sorc -> SampleRate);
+    
+        Real Sum = RCall(CDSP2_VSum, Real)(F0Iter.F0List.Y, 0,
+            F0Iter.F0List.Y_Index + 1);
+        AvgF0 = (Real)Sum / ((Real)F0Iter.F0List.Y_Index + 1.0);
+        if(VerboseFlag)
+            printf("Average fundamental frequency: %fHz (%s)\n",
+                AvgF0,
+                EF0 == CSVP_F0_YIN ? "YIN" : "SPECSTEP");
+    }else
+    {
+        RCall(PMatch, AddPair)(& F0Iter.F0List, 0.0  , AvgF0);
+        RCall(PMatch, AddPair)(& F0Iter.F0List, 100.0, AvgF0);
+        IntVOT = 0;
     }
-    RCall(F0Iterlyzer, PrevTo)(& F0Iter, 0);
-    RCall(F0Iterlyzer, IterNextTo)(& F0Iter, Sorc -> Size);
-    RCall(CSVP_F0PostProcess, Real)(& F0Iter.F0List, 4000, 0.15,
-        LFundFreq, UFundFreq);
-    
-    IntVOT = VOT * Sorc -> SampleRate;
-    if(! VOTFlag)
-        IntVOT = RCall(CSVP_VOTFromF0Match, Real)(& F0Iter.F0List, 30, 3, 1000);
-    
-    if(VerboseFlag)
-    printf("VOT = %f sec.\n", (Real)IntVOT / Sorc -> SampleRate);
-    
-    Real Sum = RCall(CDSP2_VSum, Real)(F0Iter.F0List.Y, 0,
-        F0Iter.F0List.Y_Index + 1);
-    Real AvgF0 = (Real)Sum / ((Real)F0Iter.F0List.Y_Index + 1.0);
-    
-    if(VerboseFlag)
-    printf("Average fundamental frequency: %fHz (%s)\n",
-        AvgF0,
-        EF0 == CSVP_F0_YIN ? "YIN" : "SPECSTEP");
     
     //Noise Analysis
     if(VerboseFlag)
@@ -115,6 +122,7 @@ int GenUnit(RUCE_DB_Entry* Dest, Wave* Sorc)
     SAna.LeftBound = IntVOT + 1500;
     SAna.DThreshold = AvgF0 / 3.0;
     SAna.DFThreshold = AvgF0 / 5.0;
+    SAna.GDOption.Alpha = Alpha;
     
     RCall(SinusoidIterlyzer, SetHopSize)(& SAna, 128);
     RCall(SinusoidIterlyzer, SetWave)(& SAna, Sorc);
@@ -137,10 +145,13 @@ int GenUnit(RUCE_DB_Entry* Dest, Wave* Sorc)
     for(; i < VOTSelDest; i ++)
         if(VowWave.Data[i] > VOTSelMax / 2)
             break;
-    IntVOT = i;
-    if(VerboseFlag)
-        printf("Refined VOT estimation: %f sec.\n",
-            (Real)IntVOT / Sorc -> SampleRate);
+    if(! VOTFlag)
+    {
+        IntVOT = i;
+        if(VerboseFlag)
+            printf("Refined VOT estimation: %f sec.\n",
+                (Real)IntVOT / Sorc -> SampleRate);
+    }
     
     RCall(CSVP_NoiseTurbFromWave, Real)(& ConWave, Sorc, & VowWave);
     
@@ -161,6 +172,8 @@ int GenUnit(RUCE_DB_Entry* Dest, Wave* Sorc)
     HAna.LeftBound = IntVOT + 1500;
     HAna.DThreshold = AvgF0 / 3.0;
     HAna.DFThreshold = AvgF0 / 5.0;
+    HAna.GDOption.Alpha = Alpha;
+    
     if(VerboseFlag)
         printf("Backward HNM analysis...\n");
     if(! RCall(HNMIterlyzer, PrevTo)(& HAna, 0))
@@ -313,4 +326,3 @@ int GenUnit(RUCE_DB_Entry* Dest, Wave* Sorc)
     RDelete(& F0Iter, & HAna, & ConWave);
     return FRet;
 }
-
