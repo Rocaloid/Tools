@@ -12,10 +12,10 @@
 
 static void PrintUsage()
 {
-    fprintf(stderr, "Usage: genrudb [-u freq] [-l freq] [-m method]\n"
+    fprintf(stderr, "Usage: genrudb [-u freq] [-l freq] [-m method] [-S]\n"
                     "               [-s freq] [-h hopsize] [-z size]\n"
                     "               [-c threshold] [-w window] [-t position]\n"
-                    "               [-i threshold] [-v] [-V]\n"
+                    "               [-a alpha] [-i threshold] [-v] [-V]\n"
                     "               [-q] wavfile\n");
 }
 
@@ -26,6 +26,7 @@ int main(int ArgN, char** Arg)
     UFundFreq = 700;
     LFundFreq = 80;
     CFundMethod = "YIN";
+    Stochastic = 0;
     USinuFreq = 10000;
     HopSize = 256;
     WinSize = 2048;
@@ -35,9 +36,10 @@ int main(int ArgN, char** Arg)
     VOTFlag = 0;
     InvarThreshold = 0.003;
     VerboseFlag = 0;
+    Alpha = 0.005;
     
     int c;
-    while((c = getopt(ArgN, Arg, "qu:l:m:s:h:z:w:t:i:Vv")) != -1)
+    while((c = getopt(ArgN, Arg, "qu:l:m:Ss:h:z:w:t:a:i:Vv")) != -1)
     {
         switch(c)
         {
@@ -52,6 +54,9 @@ int main(int ArgN, char** Arg)
             break;
             case 'm':
                 CFundMethod = optarg;
+            break;
+            case 'S':
+                Stochastic = 1;
             break;
             case 's':
                 USinuFreq = atof(optarg);
@@ -71,6 +76,9 @@ int main(int ArgN, char** Arg)
             case 't':
                 VOT = atof(optarg);
                 VOTFlag = 1;
+            break;
+            case 'a':
+                Alpha = atof(optarg);
             break;
             case 'v':
                 printf("Rocaloid GenRUDB version " Version "\n");
@@ -244,4 +252,3 @@ int main(int ArgN, char** Arg)
     RDelete(& FundMethod, & UnitName, & WavName, & WindowName);
     return 0;
 }
-
