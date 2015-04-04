@@ -10,6 +10,8 @@
 static void PrintUsage()
 {
     fprintf(stderr, "Usage: proberudb [-u] [-p] rudbfile\n");
+	fprintf(stderr, "\t -u Outputs UTAU oto params\n");
+	fprintf(stderr, "\t -p Outputs RUDB params\n");
 }
 
 static int GenOto;

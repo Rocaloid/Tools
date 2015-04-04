@@ -17,7 +17,12 @@
 */
 static void PrintUsage()
 {
-    fprintf(stderr, "Usage: editrudb command rudbfile [Options]\n");
+    fprintf(stderr, "Usage: editrudb command rudbfile [Options] [-v]\n");
+	fprintf(stderr, "Commands: param, setnoise, gainnoise, notchnoise, mix\n");
+	fprintf(stderr, "\n editrudb param -[t VOT] [-s SOT] [-r InvarRight] [-l InvarLeft]\n");
+	fprintf(stderr, " editrudb setnoise rudbfile wavfile\n");
+	fprintf(stderr, " editrudb notchnoise rudbfile [-s SOT] [-r radius] [-h central height]\n");
+	fprintf(stderr, " editrudb mix rudbfile rudbfile(source) [-a positionA] [-b positionB] [-r radius]\n");
 }
 
 #define DO_PARAM        0
@@ -128,7 +133,7 @@ int main(int ArgN, char** Arg)
             _C1(Set_, Id) = 1; \
         break
     
-    char* OptFilter = Param_Operation == DO_PARAM      ? "t:r:l:v" :
+    char* OptFilter = Param_Operation == DO_PARAM      ? "s:t:r:l:v" :
                       Param_Operation == DO_SETNOISE   ? "v"       :
                       Param_Operation == DO_GAINNOISE  ? "g:v"     :
                       Param_Operation == DO_NOTCHNOISE ? "s:r:h:v" :
